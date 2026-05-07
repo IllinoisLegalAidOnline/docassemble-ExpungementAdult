@@ -138,6 +138,15 @@ code: |
     records[i].rwc = False
     records[i].rwc_traffic = False
   else:
+    records[i].after_conviction
+    if records[i].after_conviction == "diversion":
+      records[i].diversion_status
+    elif records[i].after_conviction == "qualified_probation":
+      records[i].qp_complete
+    elif records[i].after_conviction == "supervision":
+      if records[i].supervision_exclusion == "none":
+        records[i].supervision_complete
+  
     if not records[i].rwc:
       records[i].unsealable    
   records[i].ex_when = 0
@@ -231,11 +240,119 @@ fields:
       variable: records[i].rwc
       is: True
 ---
+id: expungement after conviction
+question: |
+  Did any of these happen as a result of the conviction from the ${records[i].arrest_date} arrest?
+fields:
+  - no label: records[i].after_conviction
+    datatype: radio
+    choices:
+      - "I participated in a problem-solving court, pre-plea **diversion**, or post-plea diversion program.": diversion
+      - "I was charged, but was later **acquitted** or the case was **dismissed**. This could appear on your court records as *Nolle Prosequi*, Stricken Off With Leave to Reinstate (SOL), non-suit, or dismissal. The court could have issued a finding of no probable cause.": dismissed          
+      - "I received a sentence of **Qualified Probation**. This might also be called Second Chance, 410, 710, 1410, or TASC probation.": qualified_probation
+      - "I received a sentence of **supervision**.": supervision
+      - "None of the above": none
+---
+id: expungement diversion status
+question: |
+  Problem-solving court or diversion program completion
+subquestion: |
+  You said you participated in a problem-solving court, pre-plea diversion, or post-plea diversion program. 
+fields:
+  - note: |
+      Which of these is true?
+  - no label: records[i].diversion_status
+    datatype: radio
+    choices:
+      - "I successfully completed the program.": complete
+      - "I expect to successfully complete the program within 61 days of filing my request to expunge.": soon
+      - "I cannot complete the program.": incomplete
+---
+id: expungement qualified probation status
+question: |
+  Qualified Probation completion
+subquestion: |
+  You said you received a sentence of Qualified Probation. This might also be called Second Chance, 410, 710, 1410, or TASC probation.
+fields:
+  - Was this a sentence of **Second Chance** probation?: records[i].qp_second_chance
+    datatype: yesnoradio
+  - Did you successfully complete your Qualified Probation?: records[i].qp_complete
+    datatype: yesnoradio
+  - Have at least **5 years** passed since you successfully completed your Qualified Probation?: records[i].qp_complete_plus_5
+    datatype: yesnoradio
+    show if:
+      variable: records[i].qp_complete
+      is: True
+---
+id: supervision exclusions
+question: |
+  Was your supervision for any of these offenses?
+subquestion: |
+  You said you received a sentence of supervision.
+  
+  ---
+fields:
+  - no label: records[i].supervision_exclusion
+    datatype: radio
+    choices:
+      - Driving Under the Influence: dui
+      - Any sexual offense against a person under the age of 18: minor
+      - Reckless Driving: reckless
+      - "None of the above": none
+  - "Were you under age 25 when you received supervision for Reckless Driving?": records[i].reckless_was_under_25
+    datatype: yesnoradio
+    show if:
+      variable: records[i].supervision_exclusion
+      is: "reckless"
+  - Do you have any other convictions for DUI or Reckless Driving?: records[i].reckless_other
+    datatype: yesnoradio
+    js show if: |
+      val("records[i].supervision_exclusion") == "reckless" && val("records[i].reckless_was_under_25")
+  - Are you now age 25 or older?: records[i].reckless_now_25
+    datatype: yesnoradio
+    js show if: |
+      val("records[i].supervision_exclusion") == "reckless" && val("records[i].reckless_was_under_25") && val("records[i].reckless_other") == false
+---
+id: expungement supervision
+question: |
+  Supervision completion
+subquestion: |
+  You said you received a sentence of supervision.
+  
+  ---
+fields:
+  - note: |
+      Was your supervision for any of these offenses?
+
+      * Domestic Battery
+      * Criminal Sexual Abuse
+      * Driving without Insurance
+      * Driving with Registration Suspended for Non-Insurance
+      * Display of False Insurance Card
+      * Scrap Processors to Keep Records    
+  - no label: records[i].supervision_needs_5
+    datatype: yesnoradio
+  - Did you successfully complete your supervision?: records[i].supervision_complete
+    datatype: yesnoradio
+  - Have at least **5 years** passed since you successfully completed your supervision?: records[i].supervision_complete_plus_5
+    datatype: yesnoradio
+    js show if: |
+      val("records[i].supervision_complete") && val("records[i].supervision_needs_5")
+  - Have at least **2 years** passed since you successfully completed your supervision?: records[i].supervision_complete_plus_2
+    datatype: yesnoradio
+    js show if: |
+      val("records[i].supervision_complete") && val("records[i].supervision_needs_5") == false
+
+
+
+
+
+---
 id: supervision or conviction unsealable
 question: |
   Did the ${ records[i].arrest_date } arrest result in a supervision or conviction in one of these areas? 
 subquestion: |
-  THIS WILL BE ADJUSTED TO ASK ABOUT EXCEPTIONS
+  THIS SEALING QUESTION WILL BE ADJUSTED TO ASK ABOUT EXCEPTIONS
   
   Driving Offenses
   o Driving Under the Influence (625 ILCS 5/11-501)
@@ -259,6 +376,11 @@ fields:
     datatype: yesnoradio
 
 
+
+
+      
+
+        
 ---
 id: eligibility report
 generic object: DAList
