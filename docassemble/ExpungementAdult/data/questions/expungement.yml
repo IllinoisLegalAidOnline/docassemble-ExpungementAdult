@@ -131,25 +131,42 @@ subquestion: |
 continue button field: eligible_records
 ---
 code: |
-  records[i].name.text
-  records[i].conviction
-  records[i].reversed
-  if any_special_ex(records[i]):
-    records[i].rwc = False
-    records[i].rwc_traffic = False
-  else:
-    records[i].after_conviction
-    if records[i].after_conviction == "diversion":
-      records[i].diversion_status
-    elif records[i].after_conviction == "qualified_probation":
-      records[i].qp_complete
-    elif records[i].after_conviction == "supervision":
-      if records[i].supervision_exclusion == "none":
-        records[i].supervision_complete
+  records[i].arrest_date
   
+  if records[i].conviction:
+
+    if not any_special_ex(records[i]):
+      if records[i].after_arrest != "dismissed":  
+        records[i].is_felony
+        if records[i].after_arrest == "diversion":
+          records[i].diversion_status
+        elif records[i].after_arrest == "qualified_probation":
+          records[i].qp_complete
+        elif records[i].after_arrest == "supervision":
+          if records[i].supervision_exclusion == "none":
+            records[i].supervision_complete
+  else:
     if not records[i].rwc:
-      records[i].unsealable    
-  records[i].ex_when = 0
+   
+      if not any_special_ex(records[i]):
+        if records[i].after_arrest != "dismissed":  
+          records[i].is_felony
+          if records[i].after_arrest == "diversion":
+            records[i].diversion_status
+          elif records[i].after_arrest == "qualified_probation":
+            records[i].qp_complete
+          elif records[i].after_arrest == "supervision":
+            if records[i].supervision_exclusion == "none":
+              records[i].supervision_complete
+   
+ 
+  # adjust when to ask for unsealable
+  #if not records[i].rwc:
+  #  records[i].unsealable    
+
+  # maybe in here add check for exp kick-out for convictions with finding of guilt
+  
+  eligibility_check( records[i] )
   records[i].eligibility_report
   records[i].complete = True
 ---
@@ -159,8 +176,6 @@ question: |
 subquestion: |
   WHERE TO FIND INFO
 fields:
-  - Arrest or case number: records[0].name.text
-    maxlength: 25
   - Arrest date: records[0].arrest_date
     datatype: ThreePartsDate
     alMax: ${ today().format("yyyy-MM-dd") }    
@@ -171,8 +186,6 @@ question: |
 subquestion: |
   WHERE TO FIND INFO
 fields:
-  - Arrest or case number: records[i].name.text
-    maxlength: 25
   - Arrest date: records[i].arrest_date
     datatype: ThreePartsDate
     alMax: ${ today().format("yyyy-MM-dd") }    
@@ -184,7 +197,7 @@ subquestion: |
   So far you have told us about these arrests or cases:
   
   % for record in records:
-  * ${record.name.text}, Arrest date: ${record.arrest_date}
+  * Arrest date: ${record.arrest_date}
   % endfor
 
   The forms have room for up to 24 records.
@@ -194,7 +207,7 @@ fields:
 ---
 id: result in conviction
 question: |
-  Did record # ${ records[i].name.text } result in a conviction? 
+  Did the ${records[i].arrest_date} arrest result in a conviction? 
 subquestion: |
   Select **Yes** if...
 
@@ -208,6 +221,8 @@ question: |
   Do any of these apply to the conviction from the ${records[i].arrest_date} arrest? 
 subquestion: |
   These special situations might make the records eligible for expungement.
+
+  If none of these apply, click **Next**.
 fields:
   - "I was convicted, but the conviction was reversed or vacated.": records[i].reversed
     datatype: yesnowide
@@ -217,14 +232,7 @@ fields:
     datatype: yesnowide
   - "I was found by a court that I am factually innocent in the case I am asking to expunge.": records[i].factually_innocent
     datatype: yesnowide
----
-code: |
-  def any_special_ex( record ):
 
-    if record.reversed or record.pardoned or record.certificate or record.factually_innocent:
-      return True
-    else:
-      return False
 ---
 id: expungement rwc
 question: |
@@ -239,12 +247,15 @@ fields:
     show if:
       variable: records[i].rwc
       is: True
+
+
+
 ---
-id: expungement after conviction
+id: expungement after arrest
 question: |
-  Did any of these happen as a result of the conviction from the ${records[i].arrest_date} arrest?
+  Did any of these happen as a result of the ${records[i].arrest_date} arrest?
 fields:
-  - no label: records[i].after_conviction
+  - no label: records[i].after_arrest
     datatype: radio
     choices:
       - "I participated in a problem-solving court, pre-plea **diversion**, or post-plea diversion program.": diversion
@@ -342,10 +353,16 @@ fields:
     datatype: yesnoradio
     js show if: |
       val("records[i].supervision_complete") && val("records[i].supervision_needs_5") == false
-
-
-
-
+---
+id: offense type
+question: |
+  What type of offense were you charged with on ${ records[i].arrest_date }?
+fields:
+  - Offense type: records[i].is_felony
+    datatype: radio
+    choices:
+    - "Misdemeanor or an ordinance violation": False
+    - "Felony": True
 
 ---
 id: supervision or conviction unsealable
@@ -378,6 +395,88 @@ fields:
 
 
 
+---
+code: |
+  def any_special_ex( record ):
+
+    if record.reversed or record.pardoned or record.certificate or record.factually_innocent:
+      return True
+    else:
+      return False
+---
+code: |
+  def eligibility_check( record ):
+
+    # all offenses have baseline of not expungeable or sealable. eligibility and waiting periods applied through remaining logic.
+    record.ex_eligible = False
+    record.se_eligible = False
+  
+    if not record.conviction:
+      if record.rwc:
+        record.ex_eligible = True
+        record.ex_when = "now"
+        return
+      else:
+        if record.after_arrest == "dismissed":
+          record.ex_eligible = True
+          record.ex_when = "now"
+          return  
+    else:
+      if record.reversed or record.pardoned or record.certificate or record.factually_innocent:
+        record.ex_eligible = True
+        record.ex_when = "now"
+        return
+      else:
+        if record.after_arrest == "dismissed":
+          record.ex_eligible = True
+          record.ex_when = "now"
+          return
+        elif records[i].after_arrest == "diversion":
+          if records[i].diversion_status == "incomplete":
+            record.se_eligible = True
+            record.se_when = "now"
+            return
+          elif records[i].diversion_status == "complete":
+            record.ex_eligible = True
+            record.ex_when = "now"
+            return
+          else: # will complete diversion within 61 days
+            record.ex_eligible = True
+            record.ex_when = "61"
+            return
+        elif record.after_arrest == "qualified_probation":
+          if record.qp_complete and record.qp_complete_plus_5:
+            record.ex_eligible = True
+            record.ex_when = "5"
+            record.se_eligible = True
+            record.se_when = "2"
+            return
+          else:
+            record.se_eligible = True
+            if record.is_felony:
+              record.se_when = "3"
+            else:
+              record.se_when = "2"  
+            return
+        elif record.after_arrest == "supervision":
+          # this section has not been built out - add criteria for all supervision
+          if record.supervision_exclusion == "dui" or record.supervision_exclusion == "minor":
+            record.se_eligible = True
+            if record.is_felony:
+              record.se_when = "3"
+            else:
+              record.se_when = "2"  
+            return
+        else:
+          record.se_eligible = True
+          if record.is_felony:
+            record.se_when = "3"
+          else:
+            record.se_when = "2"  
+          return
+  
+    return
+
       
 
         
@@ -388,20 +487,36 @@ continue button field: x[i].eligibility_report
 question: |
   Eligibility summary
 subquestion: |
-  % if any_special_ex( x[i] ):
-  Based on your answers, ${x[i].name.text}, Arrest date: ${x[i].arrest_date} is eligible for expungement now.
-  % elif x[i].ex_when == 2:
-  Based on your answers, ${x[i].name.text}, Arrest date: ${x[i].arrest_date} is eligible for expungement in two years after successful completion of your sentence of Supervision:
-  % else:
-  Based on your answers, ${x[i].name.text}, Arrest date: ${x[i].arrest_date} is eligible for expungement in five years after successful completion of your sentence of Supervision or Qualified Probation:
+  Based on your answers, records from the ${x[i].arrest_date} arrest are eligible for:
+
+  % if x[i].ex_eligible:
+    * Expungement, ${format_waiting_period ( x[i].ex_when ) }
+  % endif
+  
+  % if x[i].se_eligible:
+    * Sealing, ${format_waiting_period ( x[i].se_when ) }
   % endif
 
-  % if x[i].unsealable:
-  Based on your answers, ${x[i].name.text}, Arrest date: ${x[i].arrest_date} is not eligible for sealing.
-  % else:
-  Based on your answers, ${x[i].name.text}, Arrest date: ${x[i].arrest_date} might be eligible for sealing? We'll see. 
+  % if not x[i].ex_eligible and not x[i].se_eligible:
+  * Neither expungement or sealing
   % endif
+---
+code: |
+  def format_waiting_period( period ):
+    if period == "now":
+      return "right now."
+    elif period == "2":
+      return "two years after you complete your **last** sentence."
+    elif period == "3":
+      return "three years after you complete your **last** sentence."
+    elif period == "5":
+      return "five years after you complete your **last** sentence."
+    elif period == "61":
+      return "after you successfully complete your problem-solving court or diversion program within 61 days of filing your expungement request."
+    else:
+      return "waiting period unknown"
 
+  
 ---
 code: |
   if records.number_gathered() >= 24:
