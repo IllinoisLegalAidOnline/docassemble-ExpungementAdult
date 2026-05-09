@@ -133,32 +133,22 @@ continue button field: eligible_records
 code: |
   records[i].arrest_date
   
-  if records[i].conviction:
+  if not records[i].conviction:
+    records[i].rwc
+  
+  if records[i].conviction or not records[i].rwc:
 
+    records[i].reversed
     if not any_special_ex(records[i]):
       if records[i].after_arrest != "dismissed":  
         records[i].is_felony
         if records[i].after_arrest == "diversion":
           records[i].diversion_status
-        elif records[i].after_arrest == "qualified_probation":
+        if records[i].after_arrest == "qualified_probation":
           records[i].qp_complete
-        elif records[i].after_arrest == "supervision":
+        if records[i].after_arrest == "supervision":
           if records[i].supervision_exclusion == "none":
             records[i].supervision_complete
-  else:
-    if not records[i].rwc:
-   
-      if not any_special_ex(records[i]):
-        if records[i].after_arrest != "dismissed":  
-          records[i].is_felony
-          if records[i].after_arrest == "diversion":
-            records[i].diversion_status
-          elif records[i].after_arrest == "qualified_probation":
-            records[i].qp_complete
-          elif records[i].after_arrest == "supervision":
-            if records[i].supervision_exclusion == "none":
-              records[i].supervision_complete
-   
  
   # adjust when to ask for unsealable
   #if not records[i].rwc:
@@ -253,7 +243,7 @@ fields:
 ---
 id: expungement after arrest
 question: |
-  Did any of these happen as a result of the ${records[i].arrest_date} arrest?
+  What happened in court as a result of the ${records[i].arrest_date} arrest?
 fields:
   - no label: records[i].after_arrest
     datatype: radio
@@ -262,7 +252,7 @@ fields:
       - "I was charged, but was later **acquitted** or the case was **dismissed**. This could appear on your court records as *Nolle Prosequi*, Stricken Off With Leave to Reinstate (SOL), non-suit, or dismissal. The court could have issued a finding of no probable cause.": dismissed          
       - "I received a sentence of **Qualified Probation**. This might also be called Second Chance, 410, 710, 1410, or TASC probation.": qualified_probation
       - "I received a sentence of **supervision**.": supervision
-      - "None of the above": none
+      - "**Something else happened**. I received a sentence of jail or prison time, a different kind of probation, conditional discharge, time considered served, or a fine.": none
 ---
 id: expungement diversion status
 question: |
@@ -303,7 +293,7 @@ subquestion: |
   
   ---
 fields:
-  - no label: records[i].supervision_exclusion
+  - Was it for any of these offenses?: records[i].supervision_exclusion
     datatype: radio
     choices:
       - Driving Under the Influence: dui
@@ -416,12 +406,13 @@ code: |
         record.ex_eligible = True
         record.ex_when = "now"
         return
-      else:
-        if record.after_arrest == "dismissed":
-          record.ex_eligible = True
-          record.ex_when = "now"
-          return  
-    else:
+      
+      if record.after_arrest == "dismissed":
+        record.ex_eligible = True
+        record.ex_when = "now"
+        return
+  
+    if record.conviction:
       if record.reversed or record.pardoned or record.certificate or record.factually_innocent:
         record.ex_eligible = True
         record.ex_when = "now"
