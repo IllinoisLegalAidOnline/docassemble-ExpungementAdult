@@ -130,36 +130,6 @@ subquestion: |
   * Cannabis misdemeanor or felony convictions
 continue button field: eligible_records
 ---
-code: |
-  records[i].arrest_date
-  
-  if not records[i].conviction:
-    records[i].rwc
-  
-  if records[i].conviction or not records[i].rwc:
-
-    records[i].reversed
-    if not any_special_ex(records[i]):
-      if records[i].after_arrest != "dismissed":  
-        records[i].is_felony
-        if records[i].after_arrest == "diversion":
-          records[i].diversion_status
-        if records[i].after_arrest == "qualified_probation":
-          records[i].qp_complete
-        if records[i].after_arrest == "supervision":
-          if records[i].supervision_exclusion == "none":
-            records[i].supervision_complete
- 
-  # adjust when to ask for unsealable
-  #if not records[i].rwc:
-  #  records[i].unsealable    
-
-  # maybe in here add check for exp kick-out for convictions with finding of guilt
-  
-  eligibility_check( records[i] )
-  records[i].eligibility_report
-  records[i].complete = True
----
 id: info about first record
 question: |
   Information about the first record
@@ -220,7 +190,7 @@ fields:
     datatype: yesnowide
   - "I received a Certificate of Eligibility for Expungement by the Prisoner Review Board.": records[i].certificate
     datatype: yesnowide
-  - "I was found by a court that I am factually innocent in the case I am asking to expunge.": records[i].factually_innocent
+  - "I was found by a court that I am factually innocent in the case.": records[i].factually_innocent
     datatype: yesnowide
 
 ---
@@ -243,16 +213,23 @@ fields:
 ---
 id: expungement after arrest
 question: |
-  What happened in court as a result of the ${records[i].arrest_date} arrest?
+  What happened as a result of the ${records[i].arrest_date} arrest?
 fields:
   - no label: records[i].after_arrest
     datatype: radio
     choices:
-      - "I participated in a problem-solving court, pre-plea **diversion**, or post-plea diversion program.": diversion
       - "I was charged, but was later **acquitted** or the case was **dismissed**. This could appear on your court records as *Nolle Prosequi*, Stricken Off With Leave to Reinstate (SOL), non-suit, or dismissal. The court could have issued a finding of no probable cause.": dismissed          
+      - "I participated in a problem-solving court, pre-plea **diversion**, or post-plea diversion program.": diversion
       - "I received a sentence of **Qualified Probation**. This might also be called Second Chance, 410, 710, 1410, or TASC probation.": qualified_probation
       - "I received a sentence of **supervision**.": supervision
-      - "**Something else happened**. I received a sentence of jail or prison time, a different kind of probation, conditional discharge, time considered served, or a fine.": none
+      - "I was **convicted** and received a sentence of jail or prison time, a different kind of probation, conditional discharge, time considered served, or a fine.": conviction
+  - note: |
+      **Note:** You can select **convicted** even if:
+      
+      * The conviction was reversed or vacated,
+      * You received a pardon from the Governor of the State of Illinois allowing expungement,
+      * You received a Certificate of Eligibility for Expungement by the Prisoner Review Board, or
+      * You were found by a court that you are factually innocent in the case.
 ---
 id: expungement diversion status
 question: |
@@ -267,7 +244,7 @@ fields:
     choices:
       - "I successfully completed the program.": complete
       - "I expect to successfully complete the program within 61 days of filing my request to expunge.": soon
-      - "I cannot complete the program.": incomplete
+      - "I did not complete the program.": incomplete
 ---
 id: expungement qualified probation status
 question: |
@@ -275,7 +252,7 @@ question: |
 subquestion: |
   You said you received a sentence of Qualified Probation. This might also be called Second Chance, 410, 710, 1410, or TASC probation.
 fields:
-  - Was this a sentence of **Second Chance** probation?: records[i].qp_second_chance
+  - Was this a sentence of **Second Chance, 410, 710, 1410, or TASC** probation?: records[i].qp_second_chance
     datatype: yesnoradio
   - Did you successfully complete your Qualified Probation?: records[i].qp_complete
     datatype: yesnoradio
@@ -316,7 +293,7 @@ fields:
 ---
 id: expungement supervision
 question: |
-  Supervision completion
+  Supervision details
 subquestion: |
   You said you received a sentence of supervision.
   
@@ -347,6 +324,8 @@ fields:
 id: offense type
 question: |
   What type of offense were you charged with on ${ records[i].arrest_date }?
+subquestion: |
+  This can affect how long you have to wait before you are eligible for criminal records relief.
 fields:
   - Offense type: records[i].is_felony
     datatype: radio
@@ -395,63 +374,104 @@ code: |
       return False
 ---
 code: |
+  records[i].arrest_date
+  
+  if not records[i].rwc:
+    records[i].after_arrest
+    if not records[i].after_arrest == "dismissed":  
+      if records[i].after_arrest == "diversion":
+        records[i].diversion_status
+      if records[i].after_arrest == "qualified_probation":
+        records[i].qp_complete
+      if records[i].after_arrest == "supervision":
+        if records[i].supervision_exclusion == "none":
+          records[i].supervision_complete
+      if records[i].after_arrest == "conviction":
+        records[i].reversed
+        if not any_special_ex( records[i] ):
+          records[i].is_felony
+   
+  # adjust when to ask for unsealable
+  #if not records[i].rwc:
+  #  records[i].unsealable    
+
+  # maybe in here add check for exp kick-out for convictions with finding of guilt
+  
+  eligibility_check( records[i] )
+  # for sealing eligibility maybe ask if ed goal reached to adjust waiting period - careful!
+  records[i].eligibility_report
+  records[i].complete = True
+---
+code: |
   def eligibility_check( record ):
 
     # all offenses have baseline of not expungeable or sealable. eligibility and waiting periods applied through remaining logic.
     record.ex_eligible = False
     record.se_eligible = False
+
+    if record.rwc:
+      record.ex_eligible = True
+      record.ex_when = "now"
+      return 
+
+    if record.after_arrest == "dismissed":
+      record.ex_eligible = True
+      record.ex_when = "now"
+      return  
   
-    if not record.conviction:
-      if record.rwc:
-        record.ex_eligible = True
-        record.ex_when = "now"
-        return
-      
-      if record.after_arrest == "dismissed":
-        record.ex_eligible = True
-        record.ex_when = "now"
-        return
-  
-    if record.conviction:
+    if record.after_arrest == "conviction":
       if record.reversed or record.pardoned or record.certificate or record.factually_innocent:
         record.ex_eligible = True
         record.ex_when = "now"
         return
+  
+    if records[i].after_arrest == "diversion":
+      if records[i].diversion_status == "incomplete":
+        record.se_eligible = True
+        record.se_when = "now"
+        return
+      elif records[i].diversion_status == "complete":
+        record.ex_eligible = True
+        record.ex_when = "now"
+        return
+      else: # will complete diversion within 61 days
+        record.ex_eligible = True
+        record.ex_when = "61"
+        return
+  
+    if record.after_arrest == "qualified_probation":
+      if record.qp_complete and record.qp_complete_plus_5:
+        record.ex_eligible = True
+        record.ex_when = "5"
+        record.se_eligible = True
+        record.se_when = "2"
+        return
       else:
-        if record.after_arrest == "dismissed":
-          record.ex_eligible = True
-          record.ex_when = "now"
+        record.se_eligible = True
+        if record.is_felony:
+          record.se_when = "3"
+        else:
+          record.se_when = "2"  
+        return
+
+    if record.after_arrest == "supervision":
+      # this section has not been built out - add criteria for all supervision
+
+      if record.supervision_exclusion == "none":  
+        if not records[i].supervision_complete:
+          record.se_eligible = True
+          if record.is_felony:
+            record.se_when = "3"
+          else:
+            record.se_when = "2"  
           return
-        elif records[i].after_arrest == "diversion":
-          if records[i].diversion_status == "incomplete":
-            record.se_eligible = True
-            record.se_when = "now"
-            return
-          elif records[i].diversion_status == "complete":
+       # these options are for supervision complete 
+        if record.supervision_needs_5:
+          if records[i].supervision_complete_plus_5:
             record.ex_eligible = True
             record.ex_when = "now"
             return
-          else: # will complete diversion within 61 days
-            record.ex_eligible = True
-            record.ex_when = "61"
-            return
-        elif record.after_arrest == "qualified_probation":
-          if record.qp_complete and record.qp_complete_plus_5:
-            record.ex_eligible = True
-            record.ex_when = "5"
-            record.se_eligible = True
-            record.se_when = "2"
-            return
           else:
-            record.se_eligible = True
-            if record.is_felony:
-              record.se_when = "3"
-            else:
-              record.se_when = "2"  
-            return
-        elif record.after_arrest == "supervision":
-          # this section has not been built out - add criteria for all supervision
-          if record.supervision_exclusion == "dui" or record.supervision_exclusion == "minor":
             record.se_eligible = True
             if record.is_felony:
               record.se_when = "3"
@@ -459,14 +479,61 @@ code: |
               record.se_when = "2"  
             return
         else:
-          record.se_eligible = True
-          if record.is_felony:
-            record.se_when = "3"
+          if records[i].supervision_complete_plus_2:
+            record.ex_eligible = True
+            record.ex_when = "now"
+            return
           else:
-            record.se_when = "2"  
-          return
+            record.se_eligible = True
+            if record.is_felony:
+              record.se_when = "3"
+            else:
+              record.se_when = "2"  
+            return
   
+          if record.supervision_needs_2:
+            if records[i].supervision_complete_plus_2:
+              record.ex_eligible = True
+              record.ex_when = "now"
+              return
+            else:
+              record.se_eligible = True
+              if record.is_felony:
+                record.se_when = "3"
+              else:
+                record.se_when = "2"  
+              return
+  
+      # check for supervision expungement exclusions: dui, sex offense v minor, or reckless driving
+      if record.supervision_exclusion == "dui" or record.supervision_exclusion == "minor":
+        record.se_eligible = True
+        if record.is_felony:
+          record.se_when = "3"
+        else:
+          record.se_when = "2"  
+        return
+      else: # reckless driving
+        if record.reckless_was_under_25:
+          if not record.reckless_other:
+            if record.reckless_now_25:
+              record.ex_eligible = True
+              record.ex_when = "now"
+              return
+        record.se_eligible = True  
+        if record.is_felony:
+          record.se_when = "3"
+        else:
+          record.se_when = "2"  
+        return
+  
+    # logic for all other records
+    record.se_eligible = True
+    if record.is_felony:
+      record.se_when = "3"
+    else:
+      record.se_when = "2"  
     return
+
 
       
 
@@ -497,11 +564,11 @@ code: |
     if period == "now":
       return "right now."
     elif period == "2":
-      return "two years after you complete your **last** sentence."
+      return "**two years** after you complete your **last** sentence."
     elif period == "3":
-      return "three years after you complete your **last** sentence."
+      return "**three years** after you complete your **last** sentence."
     elif period == "5":
-      return "five years after you complete your **last** sentence."
+      return "**five years** after you complete your **last** sentence."
     elif period == "61":
       return "after you successfully complete your problem-solving court or diversion program within 61 days of filing your expungement request."
     else:
