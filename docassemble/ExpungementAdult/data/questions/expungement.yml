@@ -176,13 +176,13 @@ fields:
   - Conviction?: records[i].conviction
     datatype: yesnoradio
 ---
-id: expungement conviction special status
+id: conviction special status
 question: |
   Do any of these apply to the conviction from the ${records[i].arrest_date} arrest? 
 subquestion: |
   These special situations might make the records eligible for expungement.
 
-  If none of these apply, click **Next**.
+  <span style="color: red;">*</span>You must select at least one option.
 fields:
   - "I was convicted, but the conviction was reversed or vacated.": records[i].reversed
     datatype: yesnowide
@@ -192,6 +192,9 @@ fields:
     datatype: yesnowide
   - "I was found by a court that I am factually innocent in the case.": records[i].factually_innocent
     datatype: yesnowide
+  - "None of these apply.": records[i].reversed_none
+    datatype: yesnowide
+    disable others: True
 
 ---
 id: expungement rwc
@@ -207,11 +210,8 @@ fields:
     show if:
       variable: records[i].rwc
       is: True
-
-
-
 ---
-id: expungement after arrest
+id: after arrest
 question: |
   What happened as a result of the ${records[i].arrest_date} arrest?
 fields:
@@ -221,6 +221,8 @@ fields:
       - "I was charged, but was later **acquitted** or the case was **dismissed**. This could appear on your court records as *Nolle Prosequi*, Stricken Off With Leave to Reinstate (SOL), non-suit, or dismissal. The court could have issued a finding of no probable cause.": dismissed          
       - "I participated in a problem-solving court, pre-plea **diversion**, or post-plea diversion program.": diversion
       - "I received a sentence of **Qualified Probation**. This might also be called Second Chance, 410, 710, 1410, or TASC probation.": qualified_probation
+      - "I participated in the **First Time Weapon Offense Program**.": weapons
+      - "I received a sentence for a **controlled substance** under Section 10 of the Cannabis Control Act, Section 410 of the Illinois Controlled Substances Act, Section 70 of the Methamphetamine Control and Community Protection Act, or Offender Initiative Program (under Section 5-6-3.3 of the Unified Code of Corrections).": drugs
       - "I received a sentence of **supervision**.": supervision
       - "I was **convicted** and received a sentence of jail or prison time, a different kind of probation, conditional discharge, time considered served, or a fine.": conviction
   - note: |
@@ -231,7 +233,7 @@ fields:
       * You received a Certificate of Eligibility for Expungement by the Prisoner Review Board, or
       * You were found by a court that you are factually innocent in the case.
 ---
-id: expungement diversion status
+id: diversion status
 question: |
   Problem-solving court or diversion program completion
 subquestion: |
@@ -246,14 +248,18 @@ fields:
       - "I expect to successfully complete the program within 61 days of filing my request to expunge.": soon
       - "I did not complete the program.": incomplete
 ---
-id: expungement qualified probation status
+id: qualified probation details
 question: |
-  Qualified Probation completion
+  Qualified Probation details
 subquestion: |
-  You said you received a sentence of Qualified Probation. This might also be called Second Chance, 410, 710, 1410, or TASC probation.
+  You said you received a sentence of Qualified Probation.
 fields:
-  - Was this a sentence of **Second Chance, 410, 710, 1410, or TASC** probation?: records[i].qp_second_chance
-    datatype: yesnoradio
+  - "What kind of Qaulified Probation did you receive?": records[i].qp_type
+    choices:
+      - Second chance: second
+      - "410, 710, 1410, or TASC probation": other_qp
+      - Another type of Qualified Probation: other                                         
+    datatype: radio
   - Did you successfully complete your Qualified Probation?: records[i].qp_complete
     datatype: yesnoradio
   - Have at least **5 years** passed since you successfully completed your Qualified Probation?: records[i].qp_complete_plus_5
@@ -261,6 +267,30 @@ fields:
     show if:
       variable: records[i].qp_complete
       is: True
+---
+id: first time weapons status
+question: |
+  First Time Weapon Offense Program completion
+subquestion: |
+  You said you participated in the First Time Weapon Offense Program. 
+fields:
+  - Did you successfully complete the program?: records[i].weapons_complete
+    datatype: yesnoradio
+---
+id: controlled substances status
+question: |
+  Controlled substance sentence completion
+subquestion: |
+  You said you received a a sentence under:
+  
+  * Section 10 of the Cannabis Control Act,
+  * Section 410 of the Illinois Controlled Substances Act,
+  * Section 70 of the Methamphetamine Control and Community Protection Act, or
+  * The Offender Initiative Program (under Section 5-6-3.3 of the Unified Code of Corrections). 
+fields:
+  - Did you successfully complete the sentence?: records[i].drugs_complete
+    datatype: yesnoradio
+      
 ---
 id: supervision exclusions
 question: |
@@ -291,7 +321,7 @@ fields:
     js show if: |
       val("records[i].supervision_exclusion") == "reckless" && val("records[i].reckless_was_under_25") && val("records[i].reckless_other") == false
 ---
-id: expungement supervision
+id: supervision
 question: |
   Supervision details
 subquestion: |
@@ -336,35 +366,50 @@ fields:
 ---
 id: supervision or conviction unsealable
 question: |
-  Did the ${ records[i].arrest_date } arrest result in a supervision or conviction in one of these areas? 
+  Did the ${ records[i].arrest_date } arrest result in a supervision or conviction for any of these offenses? 
 subquestion: |
-  THIS SEALING QUESTION WILL BE ADJUSTED TO ASK ABOUT EXCEPTIONS
+  Convictions and supervisions for these misdemeanors and felonies are not elitible for sealing.
   
-  Driving Offenses
-  o Driving Under the Influence (625 ILCS 5/11-501)
-  o Reckless Driving (unless under 25 at the time of the offense and no other convictions for DUI or reckless driving) (625 ILCS 5/11-503)
+  **Driving Offenses**
+  
+  * Driving Under the Influence ([**625 ILCS 5/11-501**](http://www.ilga.gov/legislation/ilcs/fulltext.asp?DocName=062500050K11-501))
+  * Reckless Driving (unless under 25 at the time of the offense and no other convictions for DUI or reckless driving) ([**625 ILCS 5/11-503**](http://www.ilga.gov/legislation/ilcs/fulltext.asp?DocName=062500050K11-503))
 
-  Domestic Battery (720 ILCS 5/12-3.2)
+  **Domestic Battery** ([**720 ILCS 5/12-3.2**](http://www.ilga.gov/legislation/ilcs/fulltext.asp?DocName=072000050K12-3.2))
 
-  Violation of an Order of Protection (720 ILCS 5/12-3.4), Civil No-Contact Order (740 ILCS 22), or Stalking No-Contact Order (740 ILCS 21/1-135)
+  **Violation of an Order of Protection** ([**720 ILCS 5/12-3.4**](http://www.ilga.gov/legislation/ilcs/fulltext.asp?DocName=072000050K12-3.4)), **Civil No-Contact Order** ([**740 ILCS 22**](https://www.ilga.gov/Legislation/ILCS/Articles?ActID=2491&ChapterID=57&Chapter=CIVIL%20LIABILITIES&MajorTopic=RIGHTS%20AND%20REMEDIES)), or **Stalking No-Contact Order** ([**740 ILCS 21/1-135**](http://www.ilga.gov/legislation/ilcs/ilcs3.asp?ActID=3123&ChapterID=57))
 
-  Sexual Offenses
-  o Soliciting a Prostitute or Patronizing a Prostitute (720 ILCS 5/11-18)
-  o Public Indecency (720 ILCS 5/11-30) if convicted of a felony (misdemeanor convictions are eligible)
-  o Any other misdemeanor offense listed under Article 11 of the Criminal Code (with the exception of Prostitution) (720 ILCS 5/11)
-  o Any offense that requires registration under the Sex Offender Registration Act
+  **Sexual Offenses**
+  
+  * Soliciting a Prostitute or Patronizing a Prostitute ([**720 ILCS 5/11-18**](http://www.ilga.gov/legislation/ilcs/documents/072000050K11-18.htm))
+  * Public Indecency ([**720 ILCS 5/11-30**](https://www.ilga.gov/Documents/legislation/ilcs/documents/072000050K11-30.htm)) if convicted of a felony (misdemeanor convictions are eligible)
+  * Any other misdemeanor offense listed under Article 11 of the Criminal Code (with the exception of Prostitution) ([**720 ILCS 5/11**](https://www.ilga.gov/legislation/ILCS/details?MajorTopic=&Chapter=&ActName=Criminal%20Code%20of%202012.&ActID=1876&ChapterID=53&ChapAct=720+ILCS+5%2F&SeqStart=14400000&SeqEnd=21000000))
+  * Any offense that requires registration under the Sex Offender Registration Act
 
-  Animal Offenses
-  o Dog Fighting (720 ILCS 5/48-1)
-  o Class A misdemeanors under the Humane Care for Animals Act, such as beating or tormenting an animal, or abandonment (510 ILCS 70/3.01; 510 ILCS 70/4.03; 510 ILCS 70/5; 510 ILCS 70/5.01; 510 ILCS 70/6; 510 ILCS 70/7.15)
+  **Animal Offenses**
+  
+  * Dog Fighting ([**720 ILCS 5/48-1**](http://www.ilga.gov/legislation/ilcs/fulltext.asp?DocName=072000050K48-1))
+  * Class A misdemeanors under the Humane Care for Animals Act, such as beating or tormenting an animal, or abandonment ([**510 ILCS 70/3.01**](http://www.ilga.gov/legislation/ilcs/fulltext.asp?DocName=051000700K3.01); [**510 ILCS 70/4.03**](http://www.ilga.gov/legislation/ilcs/fulltext.asp?DocName=051000700K4.03); [**510 ILCS 70/5**](http://www.ilga.gov/legislation/ilcs/fulltext.asp?DocName=051000700K5); [**510 ILCS 70/5.01**](http://ilga.gov/legislation/ilcs/documents/051000700K5.01.htm); [**510 ILCS 70/6**](http://www.ilga.gov/legislation/ilcs/fulltext.asp?DocName=051000700K6); [**510 ILCS 70/7.15**](http://www.ilga.gov/legislation/ilcs/documents/051000700K7.15.htm))
 fields:
-  - Any of these offenses?: records[i].unsealable
+  - Supervision or conviction for any of the above offenses?: records[i].unsealable
     datatype: yesnoradio
-
-
-
+---
+id: felony conviction conditional discharge
+question: |
+  Do any of these apply to the conviction from the ${records[i].arrest_date} arrest? 
+subquestion: |
+  These may affect when records are eligible for sealing.
+fields:
+  - no label: records[i].discharge_type
+    datatype: radio
+    choices:
+      - "I completed a sentence of conditional discharge or probation and the sentence **was not revoked**.": complete
+      - "I received a sentence of conditional discharge or probation and the sentence **was revoked**.": revoked
+      - "I completed an Illinois prison or jail sentence.": jail
+      - "None of the above": none
 
 ---
+# not in use
 code: |
   def any_special_ex( record ):
 
@@ -386,18 +431,18 @@ code: |
       if records[i].after_arrest == "supervision":
         if records[i].supervision_exclusion == "none":
           records[i].supervision_complete
+      if records[i].after_arrest == "weapons":
+        records[i].weapons_complete
+      if records[i].after_arrest == "drugs":
+        records[i].drugs_complete
       if records[i].after_arrest == "conviction":
-        records[i].reversed
-        if not any_special_ex( records[i] ):
+        if records[i].reversed_none:
           records[i].is_felony
    
-  # adjust when to ask for unsealable
-  #if not records[i].rwc:
-  #  records[i].unsealable    
-
   # maybe in here add check for exp kick-out for convictions with finding of guilt
   
   eligibility_check( records[i] )
+
   # for sealing eligibility maybe ask if ed goal reached to adjust waiting period - careful!
   records[i].eligibility_report
   records[i].complete = True
@@ -412,17 +457,34 @@ code: |
     if record.rwc:
       record.ex_eligible = True
       record.ex_when = "now"
+      record.se_eligible = True
+      record.se_when = "now"
       return 
 
     if record.after_arrest == "dismissed":
       record.ex_eligible = True
       record.ex_when = "now"
+      record.se_eligible = True
+      record.se_when = "now"
       return  
   
     if record.after_arrest == "conviction":
-      if record.reversed or record.pardoned or record.certificate or record.factually_innocent:
-        record.ex_eligible = True
-        record.ex_when = "now"
+      if not record.reversed_none:
+        if record.reversed or record.pardoned or record.certificate or record.factually_innocent:
+          record.ex_eligible = True
+          record.ex_when = "now"
+          return
+      if records[i].unsealable:
+        return
+      else:
+        record.se_eligible = True
+        if record.is_felony:
+          if record.discharge_type == "complete":
+            record.se_when = "2"  
+          else:
+            record.se_when = "3"
+        else:
+          record.se_when = "2"  
         return
   
     if records[i].after_arrest == "diversion":
@@ -445,6 +507,8 @@ code: |
         record.ex_when = "5"
         record.se_eligible = True
         record.se_when = "2"
+        if record.qp_type == "second":
+          record.se_when = "now"  
         return
       else:
         record.se_eligible = True
@@ -454,9 +518,32 @@ code: |
           record.se_when = "2"  
         return
 
-    if record.after_arrest == "supervision":
-      # this section has not been built out - add criteria for all supervision
+    if record.after_arrest == "weapons":
+      record.se_eligible = True
+      if records[i].weapons_complete:
+        record.se_when = "now"  
+      else:
+        if record.is_felony:
+          record.se_when = "3"
+        else:
+          record.se_when = "2"  
+      return
 
+    if record.after_arrest == "drugs":
+      record.se_eligible = True
+      if records[i].drugs_complete:
+        record.se_when = "2"  
+      else:
+        if record.is_felony:
+          record.se_when = "3"
+        else:
+          record.se_when = "2"  
+      return
+  
+    if record.after_arrest == "supervision":
+      if records[i].unsealable:
+        return
+  
       if record.supervision_exclusion == "none":  
         if not records[i].supervision_complete:
           record.se_eligible = True
@@ -525,17 +612,15 @@ code: |
         else:
           record.se_when = "2"  
         return
-  
-    # logic for all other records
-    record.se_eligible = True
-    if record.is_felony:
-      record.se_when = "3"
-    else:
-      record.se_when = "2"  
+
     return
-
-
-      
+    # draft logic for all other records - might not ever be called
+    # record.se_eligible = True
+    # if record.is_felony:
+    #   record.se_when = "3"
+    # else:
+    #   record.se_when = "2"  
+    # return
 
         
 ---
