@@ -138,7 +138,11 @@ subquestion: |
 fields:
   - Arrest date: records[0].arrest_date
     datatype: ThreePartsDate
-    alMax: ${ today().format("yyyy-MM-dd") }    
+    alMax: ${ today().format("yyyy-MM-dd") }
+  - Was this for a minor traffic offense?: records[0].traffic
+    datatype: yesnoradio
+  - note: |
+      ${ collapse_template(minor_traffic_help) }  
 ---
 id: info about other records
 question: |
@@ -149,6 +153,24 @@ fields:
   - Arrest date: records[i].arrest_date
     datatype: ThreePartsDate
     alMax: ${ today().format("yyyy-MM-dd") }    
+  - Was this for a minor traffic offense?: records[i].traffic
+    datatype: yesnoradio
+  - note: |
+      ${ collapse_template(minor_traffic_help) }  
+---
+template: minor_traffic_help
+subject: |
+  **What is a minor traffic offense?**
+content: |  
+  A **minor traffic offense** is when you break a traffic law, but it is less serious than most offenses. Usually you will just get a ticket and will not be arrested. Minor traffic offenses include:
+
+  * Driving without insurance
+  * Speeding
+  * Broken tail light
+  * Cracked windshield
+  * Expired automobile registration
+
+  Check your RAP sheet and court records. Sometimes these are charged as something higher than a Class C misdemeanor. If the minor traffic offense was charged as a Class A or B misdemeanor, you can ask for it to be expunged or sealed.    
 ---
 id: any other records
 question: |  
@@ -197,7 +219,7 @@ fields:
     disable others: True
 
 ---
-id: expungement rwc
+id: rwc
 question: |
   Were you released without being charged for the ${records[i].arrest_date} arrest? 
 subquestion: |
@@ -205,11 +227,6 @@ subquestion: |
 fields:
   - "Arrested and released without being charged?": records[i].rwc
     datatype: yesnoradio
-  - "Was this for a minor traffic offense?": records[i].rwc_traffic
-    datatype: yesnoradio
-    show if:
-      variable: records[i].rwc
-      is: True
 ---
 id: after arrest
 question: |
