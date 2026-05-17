@@ -139,7 +139,7 @@ fields:
   - Arrest date: records[0].arrest_date
     datatype: ThreePartsDate
     alMax: ${ today().format("yyyy-MM-dd") }
-  - Was this for a minor traffic offense?: records[0].traffic
+  - Was this for a minor traffic offense (Class C misdmeanor)?: records[0].traffic
     datatype: yesnoradio
   - note: |
       ${ collapse_template(minor_traffic_help) }  
@@ -153,7 +153,7 @@ fields:
   - Arrest date: records[i].arrest_date
     datatype: ThreePartsDate
     alMax: ${ today().format("yyyy-MM-dd") }    
-  - Was this for a minor traffic offense?: records[i].traffic
+  - Was this for a minor traffic offense (Class C misdmeanor)?: records[i].traffic
     datatype: yesnoradio
   - note: |
       ${ collapse_template(minor_traffic_help) }  
@@ -162,7 +162,7 @@ template: minor_traffic_help
 subject: |
   **What is a minor traffic offense?**
 content: |  
-  A **minor traffic offense** is when you break a traffic law, but it is less serious than most offenses. Usually you will just get a ticket and will not be arrested. Minor traffic offenses include:
+  A **minor traffic offense** is when you break a traffic law, but it is less serious than other offenses. Usually you will just get a ticket and will not be arrested. Minor traffic offenses include:
 
   * Driving without insurance
   * Speeding
@@ -204,13 +204,17 @@ question: |
 subquestion: |
   These special situations might make the records eligible for expungement.
 
+  **Note:** If you received a pardon or a Certificate of Expungement or Sealing from the Prisoner Review Board, attach it to your *Request* when you file it.
+
   <span style="color: red;">*</span>You must select at least one option.
 fields:
   - "I was convicted, but the conviction was reversed or vacated.": records[i].reversed
     datatype: yesnowide
-  - "I received a pardon from the Governor of the State of Illinois allowing expungement.": records[i].pardoned
+  - "I received a pardon from the Governor of the State of Illinois allowing expungement. This is also known as Executive Clemency.": records[i].pardon
     datatype: yesnowide
-  - "I received a Certificate of Eligibility for Expungement by the Prisoner Review Board.": records[i].certificate
+  - "I received a Certificate of Eligibility for **Expungement** by the Prisoner Review Board.": records[i].certificate_ex
+    datatype: yesnowide
+  - "I received a Certificate of Eligibility for **Sealing** by the Prisoner Review Board.": records[i].certificate_se
     datatype: yesnowide
   - "I was found by a court that I am factually innocent in the case.": records[i].factually_innocent
     datatype: yesnowide
@@ -247,7 +251,7 @@ fields:
       
       * The conviction was reversed or vacated,
       * You received a pardon from the Governor of the State of Illinois allowing expungement,
-      * You received a Certificate of Eligibility for Expungement by the Prisoner Review Board, or
+      * You received a Certificate of Eligibility for Expungement or Sealing by the Prisoner Review Board, or
       * You were found by a court that you are factually innocent in the case.
 ---
 id: diversion status
@@ -324,7 +328,7 @@ fields:
       - Any sexual offense against a person under the age of 18: minor
       - Reckless Driving: reckless
       - "None of the above": none
-  - "Were you under age 25 when you received supervision for Reckless Driving?": records[i].reckless_was_under_25
+  - "Were you under age 25 at the time of the Reckless Driving offense?": records[i].reckless_was_under_25
     datatype: yesnoradio
     show if:
       variable: records[i].supervision_exclusion
@@ -379,7 +383,27 @@ fields:
     choices:
     - "Misdemeanor or an ordinance violation": False
     - "Felony": True
-
+---
+id: reckless driving sealing exclusion
+question: |
+  Was your conviction for Reckless Driving?
+subquestion: |
+fields:
+  - no label: records[i].reckless_conviction
+    datatype: yesnoradio
+  - "Were you under age 25 at the time of the Reckless Driving offense?": records[i].reckless_was_under_25_conviction
+    datatype: yesnoradio
+    show if:
+      variable: records[i].reckless_conviction
+      is: True
+  - Do you have any other convictions for DUI or Reckless Driving?: records[i].reckless_other_conviction
+    datatype: yesnoradio
+    js show if: |
+      val("records[i].reckless_conviction") && val("records[i].reckless_was_under_25_conviction")
+  - Are you now age 25 or older?: records[i].reckless_now_25_conviction
+    datatype: yesnoradio
+    js show if: |
+      val("records[i].reckless_conviction") && val("records[i].reckless_was_under_25_conviction") && val("records[i].reckless_other_conviction") == false
 ---
 id: supervision or conviction unsealable
 question: |
@@ -415,7 +439,7 @@ id: felony conviction conditional discharge
 question: |
   Do any of these apply to the conviction from the ${records[i].arrest_date} arrest? 
 subquestion: |
-  These may affect when records are eligible for sealing.
+  This may affect when records are eligible for sealing.
 fields:
   - no label: records[i].discharge_type
     datatype: radio
@@ -424,13 +448,31 @@ fields:
       - "I received a sentence of conditional discharge or probation and the sentence **was revoked**.": revoked
       - "I completed an Illinois prison or jail sentence.": jail
       - "None of the above": none
+---
+id: educational goal or career certification
+question: |
+  Educational goal or career certification
+subquestion: |
+  You may be able to seal your felony conviction sooner if the following is true:
 
+  * You received a high school diploma, associate's degree, career certificate, vocational or technical certification, bachelor's degree, or passed the high school GED Test,
+  * You completed this education goal or career certification during the time of your last sentence, aftercare release, or mandatory supervised release,
+  * The felony conviction resulted in prison or jail, or conditional discharge or probation that was revoked, and
+  * You did not complete the same educational goal or career certification before.
+fields:
+  - "Are all of the above true?": ed_program_complete
+    datatype: yesnoradio
+  - note: |
+      **Note:** Attach proof of the educational or career program you completed to your *Request* when you file it.
+    show if:
+      variable: ed_program_complete
+      is: True
 ---
 # not in use
 code: |
   def any_special_ex( record ):
 
-    if record.reversed or record.pardoned or record.certificate or record.factually_innocent:
+    if record.reversed or record.pardon or record.certificate_ex or record.certificate_se or record.factually_innocent:
       return True
     else:
       return False
@@ -439,22 +481,23 @@ code: |
   records[i].arrest_date
   
   if not records[i].rwc:
-    records[i].after_arrest
-    if not records[i].after_arrest == "dismissed":  
-      if records[i].after_arrest == "diversion":
-        records[i].diversion_status
-      if records[i].after_arrest == "qualified_probation":
-        records[i].qp_complete
-      if records[i].after_arrest == "supervision":
-        if records[i].supervision_exclusion == "none":
-          records[i].supervision_complete
-      if records[i].after_arrest == "weapons":
-        records[i].weapons_complete
-      if records[i].after_arrest == "drugs":
-        records[i].drugs_complete
-      if records[i].after_arrest == "conviction":
-        if records[i].reversed_none:
-          records[i].is_felony
+    if not records[i].traffic:
+      records[i].after_arrest
+      if not records[i].after_arrest == "dismissed":  
+        if records[i].after_arrest == "diversion":
+          records[i].diversion_status
+        if records[i].after_arrest == "qualified_probation":
+          records[i].qp_complete
+        if records[i].after_arrest == "supervision":
+          if records[i].supervision_exclusion == "none":
+            records[i].supervision_complete
+        if records[i].after_arrest == "weapons":
+          records[i].weapons_complete
+        if records[i].after_arrest == "drugs":
+          records[i].drugs_complete
+        if records[i].after_arrest == "conviction":
+          if records[i].reversed_none:
+            records[i].is_felony
    
   # maybe in here add check for exp kick-out for convictions with finding of guilt
   
@@ -471,13 +514,17 @@ code: |
     record.ex_eligible = False
     record.se_eligible = False
 
+    # minor traffic offenses not eligible unless rwc
+    if record.traffic and not record.rwc:
+      return
+  
     if record.rwc:
       record.ex_eligible = True
       record.ex_when = "now"
       record.se_eligible = True
       record.se_when = "now"
       return 
-
+  
     if record.after_arrest == "dismissed":
       record.ex_eligible = True
       record.ex_when = "now"
@@ -487,29 +534,56 @@ code: |
   
     if record.after_arrest == "conviction":
       if not record.reversed_none:
-        if record.reversed or record.pardoned or record.certificate or record.factually_innocent:
-          record.ex_eligible = True
-          record.ex_when = "now"
-          return
-      if records[i].unsealable:
+        if record.reversed or record.pardon or record.certificate_ex or record.certificate_se or record.factually_innocent:
+          if record.certificate_se or record.certificate_ex:
+            if record.certificate_se:
+              record.se_eligible = True
+              record.se_when = "now"
+            if record.certificate_ex:
+              record.ex_eligible = True
+              record.ex_when = "now"
+            return
+          else:
+            record.ex_eligible = True
+            record.ex_when = "now"
+            return
+      if record.reckless_conviction:
+        if record.reckless_was_under_25_conviction:
+          if not record.reckless_other_conviction:
+            if record.reckless_now_25_conviction:
+              record.se_eligible = True  
+              if record.is_felony:
+                record.se_when = "3"
+              else:
+                record.se_when = "2"  
+              return  
+      if record.unsealable:
         return
       else:
         record.se_eligible = True
         if record.is_felony:
+          # add registry question here
+          # add human trafficking question here
+          # if human traf eligible completion of last (previous?) sentence
+          # if registry return (this assumes human traffic trumps registry)
           if record.discharge_type == "complete":
-            record.se_when = "2"  
-          else:
-            record.se_when = "3"
+            record.se_when = "2"
+            return
+          if record.discharge_type == "revoked" or record.discharge_type == "jail":
+            if ed_program_complete:
+              record.se_when = "now"
+              return
+          record.se_when = "3"
         else:
           record.se_when = "2"  
         return
   
-    if records[i].after_arrest == "diversion":
-      if records[i].diversion_status == "incomplete":
+    if record.after_arrest == "diversion":
+      if record.diversion_status == "incomplete":
         record.se_eligible = True
         record.se_when = "now"
         return
-      elif records[i].diversion_status == "complete":
+      elif record.diversion_status == "complete":
         record.ex_eligible = True
         record.ex_when = "now"
         return
@@ -537,7 +611,7 @@ code: |
 
     if record.after_arrest == "weapons":
       record.se_eligible = True
-      if records[i].weapons_complete:
+      if record.weapons_complete:
         record.se_when = "now"  
       else:
         if record.is_felony:
@@ -548,7 +622,7 @@ code: |
 
     if record.after_arrest == "drugs":
       record.se_eligible = True
-      if records[i].drugs_complete:
+      if record.drugs_complete:
         record.se_when = "2"  
       else:
         if record.is_felony:
@@ -558,11 +632,11 @@ code: |
       return
   
     if record.after_arrest == "supervision":
-      if records[i].unsealable:
+      if record.unsealable:
         return
   
       if record.supervision_exclusion == "none":  
-        if not records[i].supervision_complete:
+        if not record.supervision_complete:
           record.se_eligible = True
           if record.is_felony:
             record.se_when = "3"
@@ -571,7 +645,7 @@ code: |
           return
        # these options are for supervision complete 
         if record.supervision_needs_5:
-          if records[i].supervision_complete_plus_5:
+          if record.supervision_complete_plus_5:
             record.ex_eligible = True
             record.ex_when = "now"
             return
@@ -583,7 +657,7 @@ code: |
               record.se_when = "2"  
             return
         else:
-          if records[i].supervision_complete_plus_2:
+          if record.supervision_complete_plus_2:
             record.ex_eligible = True
             record.ex_when = "now"
             return
@@ -596,7 +670,7 @@ code: |
             return
   
           if record.supervision_needs_2:
-            if records[i].supervision_complete_plus_2:
+            if record.supervision_complete_plus_2:
               record.ex_eligible = True
               record.ex_when = "now"
               return
@@ -622,6 +696,11 @@ code: |
             if record.reckless_now_25:
               record.ex_eligible = True
               record.ex_when = "now"
+              record.se_eligible = True  
+              if record.is_felony:
+                record.se_when = "3"
+              else:
+                record.se_when = "2"  
               return
         record.se_eligible = True  
         if record.is_felony:
@@ -674,9 +753,7 @@ code: |
     elif period == "61":
       return "after you successfully complete your problem-solving court or diversion program within 61 days of filing your expungement request."
     else:
-      return "waiting period unknown"
-
-  
+      return "waiting period unknown"  
 ---
 code: |
   if records.number_gathered() >= 24:
