@@ -134,7 +134,7 @@ id: info about first record
 question: |
   Information about the first record
 subquestion: |
-  WHERE TO FIND INFO
+  TODO - Add where to find this info
 fields:
   - Arrest date: records[0].arrest_date
     datatype: ThreePartsDate
@@ -148,12 +148,12 @@ id: info about other records
 question: |
   Information about a ${ ordinal(i) } record
 subquestion: |
-  WHERE TO FIND INFO
+  TODO - Add where to find this info
 fields:
   - Arrest date: records[i].arrest_date
     datatype: ThreePartsDate
     alMax: ${ today().format("yyyy-MM-dd") }    
-  - Was this for a minor traffic offense (Class C misdmeanor)?: records[i].traffic
+  - Was this for a minor traffic offense (Class C misdmeanor or lower)?: records[i].traffic
     datatype: yesnoradio
   - note: |
       ${ collapse_template(minor_traffic_help) }  
@@ -170,7 +170,7 @@ content: |
   * Cracked windshield
   * Expired automobile registration
 
-  Check your RAP sheet and court records. Sometimes these are charged as something higher than a Class C misdemeanor. If the minor traffic offense was charged as a Class A or B misdemeanor, you can ask for it to be expunged or sealed.    
+  Check your RAP sheet and court records. Sometimes these offenses are charged as something higher than a Class C misdemeanor. If the minor traffic offense was charged as a Class A or B misdemeanor, you can ask for it to be expunged or sealed.    
 ---
 id: any other records
 question: |  
@@ -285,9 +285,8 @@ fields:
     datatype: yesnoradio
   - Have at least **5 years** passed since you successfully completed your Qualified Probation?: records[i].qp_complete_plus_5
     datatype: yesnoradio
-    show if:
-      variable: records[i].qp_complete
-      is: True
+    js show if: |
+      val("records[i].qp_type") != "second" && val("records[i].qp_complete")
 ---
 id: first time weapons status
 question: |
@@ -455,6 +454,7 @@ question: |
 subquestion: |
   You may be able to seal your felony conviction sooner if the following is true:
 
+  * You completed your last sentence,
   * You received a high school diploma, associate's degree, career certificate, vocational or technical certification, bachelor's degree, or passed the high school GED Test,
   * You completed this education goal or career certification during the time of your last sentence, aftercare release, or mandatory supervised release,
   * The felony conviction resulted in prison or jail, or conditional discharge or probation that was revoked, and
@@ -467,6 +467,38 @@ fields:
     show if:
       variable: ed_program_complete
       is: True
+---
+id: registry question
+question: |
+  Do you currently have to register on a public registry for this offense?
+subquestion: |
+  Some felony convictions require you to register on a public registry for a period of time. These include registries through the:
+  
+  * Arsonist Registration Act,
+  * Sex Offender Registration Act, and
+  * Murder and Violent Offender Against Youth Registration Act.
+
+  If you had to register but registration period has ended, you can select **No**.
+fields:
+  - "Do you have to register on a public registry for this offense?": records[i].must_register
+    datatype: yesnoradio
+---
+id: human trafficking question
+question: |
+  Human trafficking
+subquestion: |
+  If you are a victim of human trafficking, you may be able to seal eligible cases sooner.
+  
+  To be eligible, the following must be true:
+  
+  * You are a trafficking victim as defined under [**Section 10-9 of the Criminal Code of 2012**](https://www.ilga.gov/legislation/ILCS/details?MajorTopic=&Chapter=&ActName=Criminal%20Code%20of%202012.&ActID=1876&ChapterID=53&ChapAct=720+ILCS+5%2F&SeqStart=12400000&SeqEnd=13900000),
+  * You were a victim of human trafficking when the offense was committed, and
+  * Your participation in the offense was a direct result of human trafficking under Section 10-9 of the Criminal Code of 2012 or a severe form of trafficking under the federal Trafficking Victims Protection Act.
+
+  **Note:** Select **Yes** only if all of the above are true.
+fields:
+  - "Were you a victim of human trafficking when the offense was committed?": records[i].human_trafficking
+    datatype: yesnoradio
 ---
 # not in use
 code: |
@@ -562,10 +594,11 @@ code: |
       else:
         record.se_eligible = True
         if record.is_felony:
-          # add registry question here
-          # add human trafficking question here
-          # if human traf eligible completion of last (previous?) sentence
-          # if registry return (this assumes human traffic trumps registry)
+          if record.must_register:
+            return
+          if record.human_trafficking:
+            record.se_when = "last"
+            return
           if record.discharge_type == "complete":
             record.se_when = "2"
             return
@@ -581,7 +614,10 @@ code: |
     if record.after_arrest == "diversion":
       if record.diversion_status == "incomplete":
         record.se_eligible = True
-        record.se_when = "now"
+        if record.is_felony:
+          record.se_when = "3"
+        else:
+          record.se_when = "2"  
         return
       elif record.diversion_status == "complete":
         record.ex_eligible = True
@@ -638,10 +674,12 @@ code: |
       if record.supervision_exclusion == "none":  
         if not record.supervision_complete:
           record.se_eligible = True
-          if record.is_felony:
-            record.se_when = "3"
-          else:
-            record.se_when = "2"  
+          record.se_when = "2"  
+          # if supervision can be for felonies use the below if, otherwise use above
+          #if record.is_felony:
+          #  record.se_when = "3"
+          #else:
+          #  record.se_when = "2"  
           return
        # these options are for supervision complete 
         if record.supervision_needs_5:
@@ -651,10 +689,12 @@ code: |
             return
           else:
             record.se_eligible = True
-            if record.is_felony:
-              record.se_when = "3"
-            else:
-              record.se_when = "2"  
+            record.se_when = "2"  
+            # if supervision can be for felonies use the below if, otherwise use above
+            #if record.is_felony:
+            #  record.se_when = "3"
+            #else:
+            #  record.se_when = "2"  
             return
         else:
           if record.supervision_complete_plus_2:
@@ -663,10 +703,12 @@ code: |
             return
           else:
             record.se_eligible = True
-            if record.is_felony:
-              record.se_when = "3"
-            else:
-              record.se_when = "2"  
+            record.se_when = "2"  
+            # if supervision can be for felonies use the below if, otherwise use above
+            #if record.is_felony:
+            #  record.se_when = "3"
+            #else:
+            #  record.se_when = "2"  
             return
   
           if record.supervision_needs_2:
@@ -676,10 +718,12 @@ code: |
               return
             else:
               record.se_eligible = True
-              if record.is_felony:
-                record.se_when = "3"
-              else:
-                record.se_when = "2"  
+              record.se_when = "2"  
+              # if supervision can be for felonies use the below if, otherwise use above
+              #if record.is_felony:
+              #  record.se_when = "3"
+              #else:
+              #  record.se_when = "2"  
               return
   
       # check for supervision expungement exclusions: dui, sex offense v minor, or reckless driving
@@ -724,9 +768,9 @@ id: eligibility report
 generic object: DAList
 continue button field: x[i].eligibility_report
 question: |
-  Eligibility summary
+  Eligibility
 subquestion: |
-  Based on your answers, records from the ${x[i].arrest_date} arrest are eligible for:
+  Based on your answers, records from the ${x[i].arrest_date} arrest may be eligible for:
 
   % if x[i].ex_eligible:
     * Expungement, ${format_waiting_period ( x[i].ex_when ) }
@@ -740,20 +784,27 @@ subquestion: |
   * Neither expungement or sealing
   % endif
 ---
+# adjust this function for last sentence for sealing eligibility. now=end of last sentence.
 code: |
   def format_waiting_period( period ):
     if period == "now":
       return "right now."
+    elif period == "last":
+      return "after you complete your **{last sentence}**."
     elif period == "2":
-      return "**two years** after you complete your **last** sentence."
+      return "**two years** after you complete your **{last sentence}**."
     elif period == "3":
-      return "**three years** after you complete your **last** sentence."
+      return "**three years** after you complete your **{last sentence}**."
     elif period == "5":
-      return "**five years** after you complete your **last** sentence."
+      return "**five years** after you complete your **{last sentence}**."
     elif period == "61":
       return "after you successfully complete your problem-solving court or diversion program within 61 days of filing your expungement request."
     else:
       return "waiting period unknown"  
+---
+terms:
+  - last sentence: |
+      **Last sentence** means the latest completion date of any sentence you received in Illinois or any other state.
 ---
 code: |
   if records.number_gathered() >= 24:
@@ -762,14 +813,9 @@ code: |
 id: eligibility summary
 continue button field: eligibility_summary
 question: |
-  Eligibility summary
+  Which records do you want to include in your *Request*?
 subquestion: |
-  ####Expungement####
-  These records are eligible for expungement now:
-
-  These records will be eligible for expungement in two years after successful completion of your sentence of Supervision:
-
-  These records will be eligible for expungement in five years after successful completion of your sentence of Supervision or Qualified Probation:
+  PLACEHOLDER
 ---
 id: get docs screen
 event: get_docs_screen
