@@ -45,7 +45,18 @@ code: |
   eligible_records
   records.gather()
   eligibility_summary
-  
+
+  set_progress(90)
+  nav.set_section('section_user')
+  users[0].name.first
+  users[0].has_other_names
+  users[0].birthdate
+  users[0].race
+  users[0].gender
+  users[0].address.address
+  users[0].phone_number
+  e_signature
+
   set_progress(100)
   nav.set_section('section_download')
   forms_assembling
@@ -823,7 +834,7 @@ subquestion: |
 ---
 id: user name
 sets:
-    - users[0].name.first
+  - users[0].name.first
 question:  |
   What is your name?
 subquestion: |
@@ -832,6 +843,22 @@ fields:
   - code: |
       users[0].name_fields()
 ---
+id: other names
+question: |
+  Do you have any other names that were used in your cases or arrests?
+subquestions: |
+  If you used other names, list them here. This can help make sure the correct records are expunged or sealed.
+fields:
+  - no label: users[0].has_other_names
+    datatype: yesnoradio
+  - Other names (separate by commas): other_user_names
+    input type: area
+    rows: 2
+    max: 100
+    show if:
+      variable: users[0].has_other_names
+      is: True
+---
 id: user birthdate
 question: |
   When were you born?
@@ -839,7 +866,6 @@ fields:
   - Birthdate: users[0].birthdate
     datatype: BirthDate
     alMax: ${ today().format("yyyy-MM-dd") }
----
 ---
 id: petitioner race
 question: |
@@ -904,14 +930,12 @@ fields:
       states_list()
     default: IL      
   - ZIP code: users[0].address.zip
-
-
 ---
 id: your contact information
 question: |
   What is your contact information?
 subquestion: |
-  The court or other parties might need to contact you about this case.
+  The court or others might need to contact you about this case.
 
   **This information will appear on your court forms.**
   
@@ -959,7 +983,7 @@ question: |
 subquestion: |  
   This program can put "**/s/ ${users[0].name_full()}**" where you would sign your name. The court will accept this as your signature.
 
-  If you do not add your **{e-signature}** now, you must sign your paper forms before you file and deliver them.
+  If you do not add your **{e-signature}** now, you must sign your paper forms before you file them.
 
   <div class="alert alert-info ilao-info" role="alert">
     <h6 class="alert-heading">What it means to sign your forms</h6>
@@ -976,16 +1000,6 @@ terms:
   - "e-signature": |
       An e-signature is an electronic signature. It is a digital version of a signature that has the same effect as a hand-written signature.
 
-
-
-
-
-
-
-
-
-
-
 ---
 id: get docs screen
 event: get_docs_screen
@@ -995,9 +1009,9 @@ subquestion: |
   
   Your forms are ready. View and download your forms below. Click **:edit: Make changes** to fix any mistakes.
 
-  Read the **instructions** for next steps on how to use the forms and notify others about the guardianship case. 
+  Read the **instructions** for next steps on how to use the forms and follow up on your *Request*. 
   
-  This program **does not file** your forms with the court or deliver them to other parties in your case. You will need to do this yourself. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
+  This program **does not file** your forms with the court. You will need to do this yourself. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
 
   ${ action_button_html(url_action('review_answers'), label=':edit: Make changes', color='success', size="md") }
   
@@ -1007,7 +1021,7 @@ subquestion: |
 
   ${ al_user_bundle.send_button_html(show_editable_checkbox=False) }
 
-  **Note:** This program **does not file** your forms with the court or deliver them to other parties in your case. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
+  **Note:** This program **does not file** your forms with the court. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
   
   Thank you for using ILAO Easy Forms!
 under: |
