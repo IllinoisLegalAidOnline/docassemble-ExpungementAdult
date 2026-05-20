@@ -27,6 +27,7 @@ code: |
 sections:
   - section_intro: Start
   - section_eligibility: Eligibility
+  - section_user: About you
   - section_download: Download
 ---
 # interview order block
@@ -816,6 +817,175 @@ question: |
   Which records do you want to include in your *Request*?
 subquestion: |
   PLACEHOLDER
+---
+
+
+---
+id: user name
+sets:
+    - users[0].name.first
+question:  |
+  What is your name?
+subquestion: |
+  You will be listed on the court forms as the proposed guardian.
+fields:
+  - code: |
+      users[0].name_fields()
+---
+id: user birthdate
+question: |
+  When were you born?
+fields:
+  - Birthdate: users[0].birthdate
+    datatype: BirthDate
+    alMax: ${ today().format("yyyy-MM-dd") }
+---
+---
+id: petitioner race
+question: |
+  What is your race?
+subquestion: |
+  This information is used to help make sure the correct records are expunged or sealed.
+fields:
+  - Race: users[0].race
+    datatype: radio
+    choices:
+      - Asian: Asian
+      - Black: Black
+      - Hispanic: Hispanic
+      - Latino: Latino
+      - Middle Eastern: Middle Eastern 
+      - Native American: Native American
+      - Native Hawaiian: Native Hawaiian
+      - North African: North African
+      - Pacific Islander: Pacific Islander
+      - White: White
+      - 2 or more races: Multiracial
+      - Other: other
+  - Your race: user_race_other
+    maxlength: 25
+    show if:
+      variable: users[0].race
+      is: 'other'
+---
+id: petitioner gender
+question: |
+  What is your gender?
+subquestion: |
+  This information is used to help make sure the correct records are expunged or sealed.
+fields:
+  - Gender: users[0].gender
+    datatype: radio
+    required: False
+    choices:
+      - Male: Male
+      - Female: Female
+      - Other: other
+  - Your gender: user_gender_other
+    maxlength: 20
+    required: False
+    show if:
+      variable: users[0].gender
+      is: "other"
+---
+id: user address
+question: |
+  What is your address?
+subquestion: |
+  **This address will appear on your court papers.** You may receive court notices and documents about your case at this address.
+fields:
+  - Street address: users[0].address.address
+    address autocomplete: True
+  - Address line 2: users[0].address.unit
+    required: False
+  - City: users[0].address.city
+  - State: users[0].address.state
+    code: |
+      states_list()
+    default: IL      
+  - ZIP code: users[0].address.zip
+
+
+---
+id: your contact information
+question: |
+  What is your contact information?
+subquestion: |
+  The court or other parties might need to contact you about this case.
+
+  **This information will appear on your court forms.**
+  
+  If you do not want to list a phone number on your forms, leave it blank.
+
+  If you have an email address, you must list it. Be sure to check your email daily, otherwise you may miss important court documents or information about your case.
+
+  ${ collapse_template(contact_info_help) }  
+fields:  
+  - Phone number: users[0].phone_number
+    datatype: al_international_phone
+    required: False
+  - label: |
+      Do you have an email address?
+    field: users[0].has_email_address      
+    datatype: yesnoradio
+  - note: |
+      This email address will appear on your court forms. Be sure to check 
+      this email daily, otherwise you may miss important information about 
+      your case.
+    show if:
+      variable: users[0].has_email_address
+      is: True
+  - Email address: users[0].email    
+    datatype: email
+    show if: 
+      variable: users[0].has_email_address
+      is: True
+---
+template: contact_info_help
+subject: |
+  **What if I don't want to list my email address?**
+content: |  
+  If you do not want to enter your personal email address, you can create a new email account to get email about your case.
+  
+  To make a new email account try one of these email services:
+  
+  * [**Gmail**](https://accounts.google.com/SignUp)
+  * [**Outlook**](https://outlook.live.com/owa/?nlp=1&signup=1)
+  * [**Yahoo**](https://login.yahoo.com/account/create?.lang=en-US&.intl=us)
+---
+id: e-signature
+question: |
+  Do you want to add your e-signature to your forms?
+subquestion: |  
+  This program can put "**/s/ ${users[0].name_full()}**" where you would sign your name. The court will accept this as your signature.
+
+  If you do not add your **{e-signature}** now, you must sign your paper forms before you file and deliver them.
+
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">What it means to sign your forms</h6>
+    <p>By signing the <i>Request to Expunge and/or Seal Criminal Records</i>, you are certifying that:</p>
+    <p><ul>
+      <li>Everything on the forms is true and correct, or you have been informed or believe it to be true and correct, and</li>
+      <li>You understand that making a false statement on the forms is perjury and has penalties provided by law.</li></ul></p>
+  <p>See the <a href="https://www.ilga.gov/legislation/ilcs/documents/073500050k1-109.htm"><b>Illinois Code of Civil Procedure, 735 ILCS 5/1-109</b></a> for more information.</p>
+  </div>
+fields:
+  - "Add e-signature?": e_signature
+    datatype: yesnoradio
+terms:
+  - "e-signature": |
+      An e-signature is an electronic signature. It is a digital version of a signature that has the same effect as a hand-written signature.
+
+
+
+
+
+
+
+
+
+
+
 ---
 id: get docs screen
 event: get_docs_screen
