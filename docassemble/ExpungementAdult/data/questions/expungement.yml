@@ -13,7 +13,7 @@ include:
 objects:
   - users: ALPeopleList.using(there_are_any=True)
   - records: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True)  
-
+  - court_list: ALCourtLoader.using(file_name='docassemble.ILAO:data/sources/il_courts.xlsx')
 ---
 code: |
   al_form_type = 'starts_case'
@@ -39,6 +39,10 @@ code: |
   #how_to_use
   set_progress(5)
   #accept_terms
+  #expungement_info
+  #records_info
+  #whats_next
+  filing_county
 
   set_progress(25)  
   nav.set_section('section_eligibility')
@@ -125,6 +129,20 @@ subject: |
   **You can click sections like this to show more information.**
 content: |  
   This is an example of help. Click again to hide.
+---
+id: filing county
+question: |
+  In which county do you want to expunge or seal your criminal records?
+subquestion: |
+  This Easy Form will make forms to expunge or seal criminal offenses that took place within a single county.
+
+  If you have been arrested, charged with an offense, or convicted in more than one county, you will have a criminal record in each county. To expunge or seal your criminal records in more than one county, you will have to use this Easy Form once for each county.
+
+  **Note:** You will have to file forms in each county separately and you may have to pay criminal record, filing, or processing fees in each county.
+fields:
+  - County: filing_county
+    code:
+      court_list._load_courts()["address_county"].unique()
 ---
 id: eligible records
 question: |
@@ -549,6 +567,10 @@ code: |
 
   # for sealing eligibility maybe ask if ed goal reached to adjust waiting period - careful!
   records[i].eligibility_report
+  if records[i].ex_eligible or records[i].se_eligible:
+    if records[i].include != "nope":
+      records[i].case_number
+      records[i].charge
   records[i].complete = True
 ---
 code: |
@@ -641,7 +663,7 @@ code: |
         return
   
     if record.after_arrest == "qualified_probation":
-      if record.qp_complete and record.qp_complete_plus_5:
+      if record.qp_complete:
         record.ex_eligible = True
         record.ex_when = "5"
         record.se_eligible = True
@@ -671,6 +693,8 @@ code: |
     if record.after_arrest == "drugs":
       record.se_eligible = True
       if record.drugs_complete:
+        record.ex_eligible = True
+        record.ex_when = "5"
         record.se_when = "2"  
       else:
         if record.is_felony:
@@ -697,7 +721,7 @@ code: |
         if record.supervision_needs_5:
           if record.supervision_complete_plus_5:
             record.ex_eligible = True
-            record.ex_when = "now"
+            record.ex_when = "5"
             return
           else:
             record.se_eligible = True
@@ -711,7 +735,7 @@ code: |
         else:
           if record.supervision_complete_plus_2:
             record.ex_eligible = True
-            record.ex_when = "now"
+            record.ex_when = "2"
             return
           else:
             record.se_eligible = True
@@ -726,7 +750,7 @@ code: |
           if record.supervision_needs_2:
             if record.supervision_complete_plus_2:
               record.ex_eligible = True
-              record.ex_when = "now"
+              record.ex_when = "2"
               return
             else:
               record.se_eligible = True
@@ -818,6 +842,78 @@ terms:
   - last sentence: |
       **Last sentence** means the latest completion date of any sentence you received in Illinois or any other state.
 ---
+id: include records
+generic object: DAList
+question: |
+  Do you want to include records from the ${x[i].arrest_date} arrest in your *Request*?
+subquestion: |
+  Based on your answers, records from the ${x[i].arrest_date} arrest may be eligible for:
+
+  % if x[i].ex_eligible:
+    * Expungement, ${format_waiting_period ( x[i].ex_when ) }
+  % endif
+  
+  % if x[i].se_eligible:
+    * Sealing, ${format_waiting_period ( x[i].se_when ) }
+  % endif
+ 
+  **Note:** You should only file to expunge or seal records after any waiting periods.
+fields:
+  - Include these records in your *Request*?: x[i].include
+    datatype: radio
+    code: |
+      relief_list( records[i] )
+---
+code: |
+  def relief_list( record ):
+  
+    relief = []
+    if record.ex_eligible:
+      relief.append( { "expunge" : "Yes, I want to **expunge** these records." })
+    if record.se_eligible:
+      relief.append( { "seal" : "Yes, I want to **seal** these records." })
+    relief.append( { "nope" : "No, I do not want to include these records." })
+    return relief
+---
+id: case or arrest number
+generic object: DAList
+continue button field: x[i].case_number
+question: |
+  Case or arrest number for the ${x[i].arrest_date} arrest
+subquestion: |
+  If you have a case number, enter the case number. If you do not have a case number, then enter the arrest number.
+
+  If there is also a municipal ordinance code case number or a warrant arrest number for this offense, enter those in the **Other record numbers** field. If there is more than one, separate them by a comma.
+fields:
+  - Case or arrest number: x[i].case_number
+    maxlength: 30
+  - "Other record numbers": x[i].other_numbers
+    maxlength: 45
+    required: False
+---
+
+id: more record details
+generic object: DAList
+continue button field: x[i].charge
+question: |
+  More about the ${x[i].arrest_date} arrest
+subquestion: |
+  TODO - Add where to find this info
+fields:
+  - Arresting agency: x[i].agency
+    maxlength: 50
+    help: |
+      This is the police department that arrested you.
+  - Charge (List all charges from this arrest): x[i].charge
+    input type: area
+    rows: 3
+    maxlength: 100
+    help: |
+      This is the name of the offense you were charged with, such as "retail theft" or "cannabis possession."
+  - Outcome: x[i].outcome
+    help: |
+      This will be replaced with a code drop-down.
+---
 code: |
   if records.number_gathered() >= 24:
     records.there_is_another = False
@@ -837,8 +933,6 @@ sets:
   - users[0].name.first
 question:  |
   What is your name?
-subquestion: |
-  You will be listed on the court forms as the proposed guardian.
 fields:
   - code: |
       users[0].name_fields()
