@@ -14,6 +14,8 @@ objects:
   - users: ALPeopleList.using(there_are_any=True)
   - records: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True)  
   - court_list: ALCourtLoader.using(file_name='docassemble.ILAO:data/sources/il_courts.xlsx')
+  - expungement_outcomes: DAList.using(there_are_any=True)
+  - sealing_outcomes: DAList.using(there_are_any=True)
 ---
 code: |
   al_form_type = 'starts_case'
@@ -36,16 +38,18 @@ code: |
   nav.set_section('section_intro')
   sees_nav_bar
   snapshot_start
-  #how_to_use
+  how_to_use
   set_progress(5)
-  #accept_terms
-  #expungement_info
-  #records_info
-  #whats_next
+  accept_terms
+  expungement_info
+  records_info
+  whats_next
   filing_county
 
   set_progress(25)  
   nav.set_section('section_eligibility')
+  build_expungement_outcomes()
+  build_sealing_outcomes()
   eligible_records
   records.gather()
   eligibility_summary
@@ -60,6 +64,7 @@ code: |
   users[0].address.address
   users[0].phone_number
   e_signature
+  next_steps
 
   set_progress(100)
   nav.set_section('section_download')
@@ -129,6 +134,34 @@ subject: |
   **You can click sections like this to show more information.**
 content: |  
   This is an example of help. Click again to hide.
+---
+id: expungement info
+continue button field: expungement_info
+question: |
+  Expungement info placeholder
+subquestion: |
+  ADD content
+---
+id: records info
+continue button field: records_info
+question: |
+  Records info placeholder
+subquestion: |
+  ADD content
+---
+id: whats next
+continue button field: whats_next
+question: |
+  Whats next placeholder
+subquestion: |
+  ADD info
+---
+id: next steps
+continue button field: next_steps
+question: |
+  Next steps placeholder
+subquestion: |
+  ADD info
 ---
 id: filing county
 question: |
@@ -910,9 +943,172 @@ fields:
     maxlength: 100
     help: |
       This is the name of the offense you were charged with, such as "retail theft" or "cannabis possession."
-  - Outcome: x[i].outcome
-    help: |
-      This will be replaced with a code drop-down.
+  - What was the outcome of the arrest?: x[i].outcome
+    datatype: radio
+    choices:
+      - "**RWC** - Released Without Charge": RWC
+      - "**DA** - Dismissal or Acquittal, Finding of No Probable Cause (FNPC), Found Not Guilty (FNG), Nolle Prosequi, Non-Suit, Stricken Off with Leave to Reinstate (SOL)": DA
+      - "**S** - Court Supervision, Completed successfully": S
+      - "**QP** - First Offender Drug Probation or Qualified Probation, Completed successfully Completed": QP
+      - "**FI** - Found Factually Innocent": FI
+      - "**RV** - Guilty / Conviction Reversed or Vacated": RV
+      - "**P** - Guilty / Conviction with a Pardon from the Governor": P
+      - "**CE** - Guilty / Conviction with a Certificate of Eligibility for Expungement from Prisoner Review Board": CE
+    show if: 
+      code: |
+        records[i].include == "expunge"
+  - note: |
+      ${ collapse_template(expungement_outcomes_help) }
+    show if: 
+      code: |
+        records[i].include == "expunge"         
+  - What was the outcome of the arrest?: x[i].outcome
+    datatype: radio
+    choices:
+      - "**MC** - Misdemeanor Conviction - Guilty / Sentenced to: IDOC (Illinois Department of Corrections) or County Departments of Corrections (jail), Conditional Discharge, Probation (not Qualified Probation), or Fine (without court supervision)": MC
+      - "**FC** - Felony Conviction - Guilty / Sentenced to: IDOC (Illinois Department of Corrections) or County Departments of Corrections (jail), Conditional Discharge, Probation (not Qualified Probation), or Fine (without court supervision)": FC
+      - "**CE** - Guilty / Conviction with a Certificate of Eligibility for Sealing from PRB": CE
+      - "**QP** - Qualified Probation, completed successfully": QP
+    show if: 
+      code: |
+        records[i].include == "seal"      
+  - note: |
+      ${ collapse_template(sealing_outcomes_help) }
+    show if: 
+      code: |
+        records[i].include == "seal"      
+---
+template: expungement_outcomes_help
+subject: |
+  **More information about outcomes (Expungement)**
+content: |  
+  ${ expungement_table }
+---
+table: expungement_table
+rows: expungement_outcomes
+columns:
+  - Outcome Abbreviation: row_item['abbreviation']
+  - Disposition/Outcome: row_item['disposition']
+  - More Information: row_item['more_information']
+---
+code: |
+  def build_expungement_outcomes():
+    expungement_outcomes.auto_gather = False
+    expungement_outcomes.clear()
+    expungement_outcomes.append({
+      'abbreviation': 'DA',
+      'disposition': 'Dismissal',
+      'more_information': 'The state stopped prosecuting your case and the court dismissed the case.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'DA',
+      'disposition': 'Finding of No Probable Cause (FNPC)',
+      'more_information': 'The court dismissed the case because it decided that there was no probable cause (reason) to believe that you had committed the offense that you were accused of.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'DA',
+      'disposition': 'Found Not Guilty (FNG)',
+      'more_information': 'The court decided you were not guilty of the offense you were charged with.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'DA',
+      'disposition': 'Nolle Prosequi',
+      'more_information': 'The state stopped prosecuting your case and the court terminated the case.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'DA',
+      'disposition': 'Non-Suit',
+      'more_information': 'The prosecutor has the option to bring the case back up again. If they do not, the case is considered terminated.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'DA',
+      'disposition': 'Stricken Off with Leave to Reinstate (SOL)',
+      'more_information': 'The State has the option to bring the case back up again. If they do not within 120 – 160 days, the case is considered terminated.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'RWC',
+      'disposition': 'Released without Charging',
+      'more_information': 'You were arrested but not charged with an offense or brought to court.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'S',
+      'disposition': 'Court Supervision, Completed Successfully',
+      'more_information': 'The court kept your case open for a set period of time. You followed the conditions during that time and the court dismissed the criminal charges against you.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'QP',
+      'disposition': 'Successfully completed First Offender Drug Probation or Qualified Probation',
+      'more_information': 'This type of probation can also be called 410, 710, 1410, or TASC probation when the court determines the arrest was a result of alcohol or drug addiction and must be reflected in the record. You can tell if you received this special type of probation by the court disposition.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'RV',
+      'disposition': 'Guilty/Conviction Reversed Or Vacated',
+      'more_information': 'You were found guilty of an offense, but the conviction was reversed or vacated.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'P',
+      'disposition': 'Guilty/Conviction with a Pardon from the Governor',
+      'more_information': 'You were found guilty of an offense, but the Governor granted you a pardon that allows the expungement of your criminal record.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'CE',
+      'disposition': 'Guilty/Conviction with a Certificate of Eligibility for Expungement from the Prisoner Review Board',
+      'more_information': 'You were found guilty of an offense, but you petitioned the Prisoner Review Board and were granted eligibility to erase a conviction from your criminal record.'
+    })
+    expungement_outcomes.gathered = True
+    return
+
+---
+template: sealing_outcomes_help
+subject: |
+  **More information about outcomes (Sealing)**
+content: |  
+  ${ sealing_table }
+---
+table: sealing_table
+rows: sealing_outcomes
+columns:
+  - Outcome Abbreviation: row_item['abbreviation']
+  - Disposition/Outcome: row_item['disposition']
+  - More Information: row_item['more_information']
+---
+code: |
+  def build_sealing_outcomes():
+    sealing_outcomes.auto_gather = False
+    sealing_outcomes.clear()
+    sealing_outcomes.append({
+      'abbreviation': 'MC or FC',
+      'disposition': 'IDOC (Illinois Department of Corrections) or County Departments of Corrections (jail)',
+      'more_information': 'You were found guilty of an offense. You were sentenced to time in jail or prison.'
+    })
+    sealing_outcomes.append({
+      'abbreviation': 'MC or FC',
+      'disposition': 'Conditional Discharge',
+      'more_information': 'You were found guilty of an offense. You were sentenced to comply with certain conditions, but you did not have to report to a probation officer.'
+    })
+    sealing_outcomes.append({
+      'abbreviation': 'MC or FC',
+      'disposition': 'Probation (not Qualified Probation)',
+      'more_information': 'You were found guilty of an offense. You were sentenced to report to a Probation Officer.'
+    })
+    sealing_outcomes.append({
+      'abbreviation': 'MC or FC',
+      'disposition': 'Fine (without court supervision)',
+      'more_information': 'You were found guilty of an offense. You were sentenced to pay a fine.'
+    })
+    sealing_outcomes.append({
+      'abbreviation': 'CE',
+      'disposition': 'Guilty/Conviction with a Certificate of Eligibility for Sealing from the Prisoner Review Board',
+      'more_information': 'You were found guilty of an offense, but you petitioned the Prisoner Review Board and were granted eligibility to seal a conviction from your criminal record.'
+    })
+    sealing_outcomes.append({
+      'abbreviation': 'QP',
+      'disposition': 'Qualified Probation Successfully Completed',
+      'more_information': 'This type of probation can also be called 410, 710, 1410, or TASC probation when the court determines the arrest was a result of alcohol or drug addiction and must be reflected in the record. You can tell if you received this special type of probation by the court disposition.'
+    })
+    sealing_outcomes.gathered = True
+    return
+
 ---
 code: |
   if records.number_gathered() >= 24:
