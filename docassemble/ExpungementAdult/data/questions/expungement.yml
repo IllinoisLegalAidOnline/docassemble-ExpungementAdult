@@ -44,15 +44,15 @@ code: |
   expungement_info
   records_info
   whats_next
-  filing_county
 
   set_progress(25)  
   nav.set_section('section_eligibility')
+  filing_county
   build_expungement_outcomes()
   build_sealing_outcomes()
   eligible_records
   records.gather()
-  eligibility_summary
+  #eligibility_summary
 
   set_progress(90)
   nav.set_section('section_user')
@@ -104,6 +104,20 @@ code: |
 code: |
   reconsider('snapshot_interview_state')
   snapshot_forms = True
+---
+# work in progress
+id: dev notice
+event: dev_notice
+question: |
+  Easy Form update in progress - June 1, 2026 law change
+subquestion: |
+  A new law changes criminal records relief in Illinois. As a result, the statewide adult Expungement and Sealing forms have changed.
+  
+  ILAO is working to update this Easy Form. Until it is ready, you can find fillable PDF versions of the new forms on the [**Illinois Courts website**](https://www.illinoiscourts.gov/forms/approved-forms/forms-approved-forms-circuit-court/expungement-sealing/).
+  
+  If you would like to talk with a lawyer about criminal records relief, use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+  
+  We apologize for the inconvenience.
 ---
 id: welcome
 question: |
@@ -932,6 +946,10 @@ question: |
   More about the ${x[i].arrest_date} arrest
 subquestion: |
   TODO - Add where to find this info
+
+  % if x[i].include == "seal": 
+  **Note:** If you received Supervision or Qualified Probation and did not complete it, list the outcome as a conviction. Select Misdmeanor Conviction or Felony Conviction depending on your situation.
+  % endif
 fields:
   - Arresting agency: x[i].agency
     maxlength: 50
@@ -943,7 +961,7 @@ fields:
     maxlength: 100
     help: |
       This is the name of the offense you were charged with, such as "retail theft" or "cannabis possession."
-  - What was the outcome of the arrest?: x[i].outcome
+  - What was the outcome of the arrest?: x[i].ex_outcome
     datatype: radio
     choices:
       - "**RWC** - Released Without Charge": RWC
@@ -962,7 +980,7 @@ fields:
     show if: 
       code: |
         records[i].include == "expunge"         
-  - What was the outcome of the arrest?: x[i].outcome
+  - What was the outcome of the arrest?: x[i].se_outcome
     datatype: radio
     choices:
       - "**MC** - Misdemeanor Conviction - Guilty / Sentenced to: IDOC (Illinois Department of Corrections) or County Departments of Corrections (jail), Conditional Discharge, Probation (not Qualified Probation), or Fine (without court supervision)": MC
@@ -1114,6 +1132,7 @@ code: |
   if records.number_gathered() >= 24:
     records.there_is_another = False
 ---
+# delete this question?
 id: eligibility summary
 continue button field: eligibility_summary
 question: |
@@ -1299,7 +1318,7 @@ subquestion: |
   
   Your forms are ready. View and download your forms below. Click **:edit: Make changes** to fix any mistakes.
 
-  Read the **instructions** for next steps on how to use the forms and follow up on your *Request*. 
+  Read the instructions for next steps on how to use the forms and follow up on your *Request*. 
   
   This program **does not file** your forms with the court. You will need to do this yourself. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
 
@@ -1321,3 +1340,45 @@ under: |
 
   &nbsp;
   ${ action_button_html(interview_url(i="docassemble.ILAO:feedback.yml", easy_form_interview=ilao_easy_form_url, easy_form_title=ilao_easy_form_title, easy_form_page=current_context().question_id, easy_form_variable=current_context().variable, local=False,reset=1), label=':comment: Was this program helpful?', color="#181c36", size="md", new_window=True) }
+---
+generic object: ALDocumentBundle
+template: x.get_email_copy
+content: |
+  Send a copy of your forms to your email
+---
+generic object: ALDocumentBundle
+template: x.send_email_template
+subject: |
+  Expungement forms
+content: |
+  Your forms are attached.
+  
+  Thanks for using ILAO Easy Forms!
+  
+  [Illinois Legal Aid Online](https://www.illinoislegalaid.org)
+---
+objects:
+  - instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", has_addendum=False)
+  - request: ALDocument.using(title="Request to Expunge or Seal", filename="petition.pdf", has_addendum=False)
+---
+code: |
+  instructions.enabled = True
+  request.enabled = False
+---
+objects:
+  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, request], filename="expungement_forms.pdf", title="All forms")
+  #- al_court_bundle: ALDocumentBundle.using(elements=[instructions_kids, cook_cover_sheet], filename="divorce_forms.pdf", title="All forms")
+---
+objects:
+  - request_bundle: ALDocumentBundle.using(elements=[request], filename="request.pdf", title="Request to Expunge or Seal")
+---
+attachment:
+  variable name: instructions[i]
+  name: instructions
+  filename: instructions
+  editable: False
+  skip undefined: True
+  pdf template file: instructions.pdf  
+  fields:
+      - "fake": ${ "" }
+---
