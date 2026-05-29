@@ -1360,14 +1360,16 @@ content: |
 objects:
   - instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", has_addendum=False)
   - request: ALDocument.using(title="Request to Expunge or Seal", filename="petition.pdf", has_addendum=False)
+  - order_denying_request: ALDocument.using(title="Order Denying Request (draft)", filename="order_denying_request.pdf", has_addendum=False)
 ---
 code: |
   instructions.enabled = True
-  request.enabled = False
+  request.enabled = True
+  order_denying_request.enabled = True
 ---
 objects:
-  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, request], filename="expungement_forms.pdf", title="All forms")
-  #- al_court_bundle: ALDocumentBundle.using(elements=[instructions_kids, cook_cover_sheet], filename="divorce_forms.pdf", title="All forms")
+  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, request_bundle, order_denying_request], filename="expungement_forms.pdf", title="All forms")
+  #- al_court_bundle: ALDocumentBundle.using(elements=[request_bundle, order_denying_request], filename="expungement_forms.pdf", title="All forms")
 ---
 objects:
   - request_bundle: ALDocumentBundle.using(elements=[request], filename="request.pdf", title="Request to Expunge or Seal")
@@ -1380,5 +1382,189 @@ attachment:
   skip undefined: True
   pdf template file: instructions.pdf  
   fields:
-      - "fake": ${ "" }
+    - "fake": ${ "" }
 ---
+attachment:
+  variable name: request[i]
+  name: request
+  filename: request
+  editable: False
+  skip undefined: True
+  pdf template file: request.pdf  
+  fields:
+    - "filing_county": ${ "" }
+    - "user_name": ${ "" }
+    - "other_names": ${ "" }
+    - "user_dob": ${ "" }
+    - "user_race": ${ "" }
+    - "user_gender": ${ "" }
+    - "case_number": ${ "" }
+    - "case_number_2": ${ "" }
+    - "case_number_3": ${ "" }
+    - "case_number_4": ${ "" }
+    - "case_number_5": ${ "" }
+    - "case_number_6": ${ "" }
+    - "expunge_yes": ${ "" }
+    - "expunge_no": ${ "" }
+    - "ex_arrest_or_case_number_0": ${ "" }
+    - "ex_arresting_agency_0": ${ "" }
+    - "ex_charge_0": ${ "" }
+    - "ex_arrest_date_0": ${ "" }
+    - "ex_outcome_0": ${ "" }
+    - "ex_arrest_or_case_number_1": ${ "" }
+    - "ex_arresting_agency_1": ${ "" }
+    - "ex_charge_1": ${ "" }
+    - "ex_arrest_date_1": ${ "" }
+    - "ex_outcome_1": ${ "" }
+    - "ex_arrest_or_case_number_2": ${ "" }
+    - "ex_arresting_agency_2": ${ "" }
+    - "ex_charge_2": ${ "" }
+    - "ex_arrest_date_2": ${ "" }
+    - "ex_outcome_2": ${ "" }
+    - "ex_arrest_or_case_number_3": ${ "" }
+    - "ex_arresting_agency_3": ${ "" }
+    - "ex_charge_3": ${ "" }
+    - "ex_arrest_date_3": ${ "" }
+    - "ex_outcome_3": ${ "" }
+    - "ex_arrest_or_case_number_4": ${ "" }
+    - "ex_arresting_agency_4": ${ "" }
+    - "ex_charge_4": ${ "" }
+    - "ex_arrest_date_4": ${ "" }
+    - "ex_outcome_4": ${ "" }
+    - "ex_arrest_or_case_number_5": ${ "" }
+    - "ex_arresting_agency_5": ${ "" }
+    - "ex_charge_5": ${ "" }
+    - "ex_arrest_date_5": ${ "" }
+    - "ex_outcome_5": ${ "" }
+    - "ex_arrest_or_case_number_6": ${ "" }
+    - "ex_arresting_agency_6": ${ "" }
+    - "ex_charge_6": ${ "" }
+    - "ex_arrest_date_6": ${ "" }
+    - "ex_outcome_6": ${ "" }
+    - "ex_arrest_or_case_number_7": ${ "" }
+    - "ex_arresting_agency_7": ${ "" }
+    - "ex_charge_7": ${ "" }
+    - "ex_arrest_date_7": ${ "" }
+    - "ex_outcome_7": ${ "" }
+    - "ex_arrest_or_case_number_8": ${ "" }
+    - "ex_arresting_agency_8": ${ "" }
+    - "ex_charge_8": ${ "" }
+    - "ex_arrest_date_8": ${ "" }
+    - "ex_outcome_8": ${ "" }
+    - "ex_arrest_or_case_number_9": ${ "" }
+    - "ex_arresting_agency_9": ${ "" }
+    - "ex_charge_9": ${ "" }
+    - "ex_arrest_date_9": ${ "" }
+    - "ex_outcome_9": ${ "" }
+    - "ex_additional_cb": ${ "" }
+    - "ex_reverse": ${ "" }
+    - "ex_pardon": ${ "" }
+    - "ex_cert": ${ "" }
+    - "ex_innocent": ${ "" }
+    - "ex_rwc": ${ "" }
+    - "ex_traffic_rwc": ${ "" }
+    - "ex_diversion_cb": ${ "" }
+    - "ex_diversion_complete_now": ${ "" }
+    - "ex_diversion_complete_61": ${ "" }
+    - "ex_dismissed": ${ "" }
+    - "ex_qp_complete_5": ${ "" }
+    - "ex_supervision_cb": ${ "" }
+    - "ex_supervision_complete_5": ${ "" }
+    - "ex_supervision_complete_2": ${ "" }
+    - "ex_not_supervision_exclusion": ${ "" }
+    - "ex_reckless_driving": ${ "" }
+    - "seal_yes": ${ "" }
+    - "seal_no": ${ "" }
+    - "se_arrest_or_case_number_0": ${ "" }
+    - "se_arresting_agency_0": ${ "" }
+    - "se_charge_0": ${ "" }
+    - "se_arrest_date_0": ${ "" }
+    - "se_outcome_0": ${ "" }
+    - "se_arrest_or_case_number_1": ${ "" }
+    - "se_arresting_agency_1": ${ "" }
+    - "se_charge_1": ${ "" }
+    - "se_arrest_date_1": ${ "" }
+    - "se_outcome_1": ${ "" }
+    - "se_arrest_or_case_number_2": ${ "" }
+    - "se_arresting_agency_2": ${ "" }
+    - "se_charge_2": ${ "" }
+    - "se_arrest_date_2": ${ "" }
+    - "se_outcome_2": ${ "" }
+    - "se_arrest_or_case_number_3": ${ "" }
+    - "se_arresting_agency_3": ${ "" }
+    - "se_charge_3": ${ "" }
+    - "se_arrest_date_3": ${ "" }
+    - "se_outcome_3": ${ "" }
+    - "se_arrest_or_case_number_4": ${ "" }
+    - "se_arresting_agency_4": ${ "" }
+    - "se_charge_4": ${ "" }
+    - "se_arrest_date_4": ${ "" }
+    - "se_outcome_4": ${ "" }
+    - "se_arrest_or_case_number_5": ${ "" }
+    - "se_arresting_agency_5": ${ "" }
+    - "se_charge_5": ${ "" }
+    - "se_arrest_date_5": ${ "" }
+    - "se_outcome_5": ${ "" }
+    - "se_arrest_or_case_number_6": ${ "" }
+    - "se_arresting_agency_6": ${ "" }
+    - "se_charge_6": ${ "" }
+    - "se_arrest_date_6": ${ "" }
+    - "se_outcome_6": ${ "" }
+    - "se_arrest_or_case_number_7": ${ "" }
+    - "se_arresting_agency_7": ${ "" }
+    - "se_charge_7": ${ "" }
+    - "se_arrest_date_7": ${ "" }
+    - "se_outcome_7": ${ "" }
+    - "se_arrest_or_case_number_8": ${ "" }
+    - "se_arresting_agency_8": ${ "" }
+    - "se_charge_8": ${ "" }
+    - "se_arrest_date_8": ${ "" }
+    - "se_outcome_8": ${ "" }
+    - "se_arrest_or_case_number_9": ${ "" }
+    - "se_arresting_agency_9": ${ "" }
+    - "se_charge_9": ${ "" }
+    - "se_arrest_date_9": ${ "" }
+    - "se_outcome_9": ${ "" }
+    - "se_additional_cb": ${ "" }
+    - "se_qp_complete_no_wait": ${ "" }
+    - "se_supervision_2": ${ "" }
+    - "se_misdemeanor_2": ${ "" }
+    - "se_drugs_complete_2": ${ "" }
+    - "se_felony_conviction_2": ${ "" }
+    - "se_felony_probation_revoked_3": ${ "" }
+    - "se_felony_jail_3": ${ "" }
+    - "se_not_registry": ${ "" }
+    - "se_cert": ${ "" }
+    - "se_education_goal": ${ "" }
+    - "se_human_trafficking": ${ "" }
+    - "se_reckless_driving": ${ "" }
+    - "e_sign_name": ${ users[0].name_full() if e_signature else "" }
+    - "user_name_2": ${ users[0].name_full() }
+    - "for_self": ${ True }
+    - "user_phone": ${ phone_number_formatted(users[0].phone_number) }
+    - "user_email": ${ users[0].email if users[0].has_email_address else "" }
+    - "user_address": ${ users[0].address.on_one_line(bare=True) }
+
+
+
+---
+attachment:
+  variable name: order_denying_request[i]
+  name: order_denying_request
+  filename: order_denying_request
+  editable: False
+  skip undefined: True
+  pdf template file: order_denying_request.pdf  
+  fields:
+    - "filing_county": ${ "" }
+    - "user_name": ${ "" }
+    - "other_names": ${ "" }
+    - "user_dob": ${ "" }
+    - "user_race": ${ "" }
+    - "user_gender": ${ "" }
+    - "case_number": ${ "" }
+    - "user_name_2": ${ users[0].name_full() }
+    - "user_phone": ${ phone_number_formatted(users[0].phone_number) }
+    - "user_email": ${ users[0].email if users[0].has_email_address else "" }
+    - "user_address": ${ users[0].address.on_one_line(bare=True) }
+    - "attorney_number": ${""}
