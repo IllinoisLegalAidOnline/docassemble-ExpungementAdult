@@ -930,12 +930,12 @@ question: |
 subquestion: |
   If you have a case number, enter the case number. If you do not have a case number, then enter the arrest number.
 
-  If there is also a municipal ordinance code case number or a warrant arrest number for this offense, enter those in the **Other record numbers** field. If there is more than one, separate them by a comma.
+  If there is also a municipal ordinance code case number or a warrant arrest number **for this offense**, enter those in the **Other record numbers** field. If there is more than one, separate them by a comma.
 fields:
   - Case or arrest number: x[i].case_number
-    maxlength: 30
-  - "Other record numbers": x[i].other_numbers
-    maxlength: 45
+    maxlength: 20
+  - "Other record numbers for this offense": x[i].other_numbers
+    maxlength: 40
     required: False
 ---
 
@@ -1359,16 +1359,27 @@ content: |
 ---
 objects:
   - instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", has_addendum=False)
-  - request: ALDocument.using(title="Request to Expunge or Seal", filename="petition.pdf", has_addendum=False)
+  - request: ALDocument.using(title="Request to Expunge or Seal", filename="request.pdf", has_addendum=False)
+  - additional_expungement: ALDocument.using(title="Additional records for expungement", filename="additional_expungement.pdf", has_addendum=False)
+  - additional_sealing: ALDocument.using(title="Additional records for sealing", filename="additional_sealing.pdf", has_addendum=False)
+  - case_list: ALDocument.using(title="Case List for Request", filename="case_list.pdf", has_addendum=False)
+  - order: ALDocument.using(title="Order to Expunge or Seal (draft)", filename="order.pdf", has_addendum=False)
   - order_denying_request: ALDocument.using(title="Order Denying Request (draft)", filename="order_denying_request.pdf", has_addendum=False)
 ---
 code: |
   instructions.enabled = True
   request.enabled = True
+  case_list.enabled = True
+  order.enabled = True
   order_denying_request.enabled = True
+
+  # need to build logic for dynamic assembly, make new bundles, add bundles to request_bundle
+  additional_expungement.enabled = False
+  additional_sealing.enabled = False
+  # extra case list (not yet defined): additional_case_list.enabled = False
 ---
 objects:
-  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, request_bundle, order_denying_request], filename="expungement_forms.pdf", title="All forms")
+  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, request_bundle, case_list, order, order_denying_request], filename="expungement_forms.pdf", title="All forms")
   #- al_court_bundle: ALDocumentBundle.using(elements=[request_bundle, order_denying_request], filename="expungement_forms.pdf", title="All forms")
 ---
 objects:
@@ -1545,8 +1556,153 @@ attachment:
     - "user_email": ${ users[0].email if users[0].has_email_address else "" }
     - "user_address": ${ users[0].address.on_one_line(bare=True) }
 
+---
+attachment:
+  variable name: additional_expungement[i]
+  name: additional_expungement
+  filename: additional_expungement
+  editable: False
+  skip undefined: True
+  pdf template file: additional_expungement.pdf  
+  fields:
+    - "filing_county": ${ "" }
+    - "user_name": ${ "" }
+    - "other_names": ${ "" }
+    - "user_dob": ${ "" }
+    - "user_race": ${ "" }
+    - "user_gender": ${ "" }
+    - "case_number": ${ "" }
+    - "user_name_2": ${ users[0].name_full() }
+    - "e_sign_name": ${ users[0].name_full() if e_signature else "" }
+    - "attorney_number": ${""}
+    - "ex_arrest_or_case_number_1": ${ "" }
+    - "ex_arresting_agency_1": ${ "" }
+    - "ex_charge_1": ${ "" }
+    - "ex_arrest_date_1": ${ "" }
+    - "ex_outcome_1": ${ "" }
+    - "ex_arrest_or_case_number_2": ${ "" }
+    - "ex_arresting_agency_2": ${ "" }
+    - "ex_charge_2": ${ "" }
+    - "ex_arrest_date_2": ${ "" }
+    - "ex_outcome_2": ${ "" }
+    - "ex_arrest_or_case_number_3": ${ "" }
+    - "ex_arresting_agency_3": ${ "" }
+    - "ex_charge_3": ${ "" }
+    - "ex_arrest_date_3": ${ "" }
+    - "ex_outcome_3": ${ "" }
+    - "ex_arrest_or_case_number_4": ${ "" }
+    - "ex_arresting_agency_4": ${ "" }
+    - "ex_charge_4": ${ "" }
+    - "ex_arrest_date_4": ${ "" }
+    - "ex_outcome_4": ${ "" }
+    - "ex_arrest_or_case_number_5": ${ "" }
+    - "ex_arresting_agency_5": ${ "" }
+    - "ex_charge_5": ${ "" }
+    - "ex_arrest_date_5": ${ "" }
+    - "ex_outcome_5": ${ "" }
+    - "ex_arrest_or_case_number_6": ${ "" }
+    - "ex_arresting_agency_6": ${ "" }
+    - "ex_charge_6": ${ "" }
+    - "ex_arrest_date_6": ${ "" }
+    - "ex_outcome_6": ${ "" }
+    - "ex_arrest_or_case_number_7": ${ "" }
+    - "ex_arresting_agency_7": ${ "" }
+    - "ex_charge_7": ${ "" }
+    - "ex_arrest_date_7": ${ "" }
+    - "ex_outcome_7": ${ "" }
+---
+attachment:
+  variable name: additional_sealing[i]
+  name: additional_sealing
+  filename: additional_sealing
+  editable: False
+  skip undefined: True
+  pdf template file: additional_sealing.pdf  
+  fields:
+    - "filing_county": ${ "" }
+    - "user_name": ${ "" }
+    - "other_names": ${ "" }
+    - "user_dob": ${ "" }
+    - "user_race": ${ "" }
+    - "user_gender": ${ "" }
+    - "case_number": ${ "" }
+    - "user_name_2": ${ users[0].name_full() }
+    - "e_sign_name": ${ users[0].name_full() if e_signature else "" }
+    - "attorney_number": ${""}
+    - "se_arrest_or_case_number_1": ${ "" }
+    - "se_arresting_agency_1": ${ "" }
+    - "se_charge_1": ${ "" }
+    - "se_arrest_date_1": ${ "" }
+    - "se_outcome_1": ${ "" }
+    - "se_arrest_or_case_number_2": ${ "" }
+    - "se_arresting_agency_2": ${ "" }
+    - "se_charge_2": ${ "" }
+    - "se_arrest_date_2": ${ "" }
+    - "se_outcome_2": ${ "" }
+    - "se_arrest_or_case_number_3": ${ "" }
+    - "se_arresting_agency_3": ${ "" }
+    - "se_charge_3": ${ "" }
+    - "se_arrest_date_3": ${ "" }
+    - "se_outcome_3": ${ "" }
+    - "se_arrest_or_case_number_4": ${ "" }
+    - "se_arresting_agency_4": ${ "" }
+    - "se_charge_4": ${ "" }
+    - "se_arrest_date_4": ${ "" }
+    - "se_outcome_4": ${ "" }
+    - "se_arrest_or_case_number_5": ${ "" }
+    - "se_arresting_agency_5": ${ "" }
+    - "se_charge_5": ${ "" }
+    - "se_arrest_date_5": ${ "" }
+    - "se_outcome_5": ${ "" }
+    - "se_arrest_or_case_number_6": ${ "" }
+    - "se_arresting_agency_6": ${ "" }
+    - "se_charge_6": ${ "" }
+    - "se_arrest_date_6": ${ "" }
+    - "se_outcome_6": ${ "" }
+    - "se_arrest_or_case_number_7": ${ "" }
+    - "se_arresting_agency_7": ${ "" }
+    - "se_charge_7": ${ "" }
+    - "se_arrest_date_7": ${ "" }
+    - "se_outcome_7": ${ "" }
+---
+attachment:
+  variable name: case_list[i]
+  name: case_list
+  filename: case_list
+  editable: False
+  skip undefined: True
+  pdf template file: case_list.pdf  
+  fields:
+    - "filing_county": ${ "" }
+    - "user_name": ${ "" }
+    - "other_names": ${ "" }
+    - "user_dob": ${ "" }
+    - "user_race": ${ "" }
+    - "user_gender": ${ "" }
+    - "case_number": ${ "" }
 
-
+---
+attachment:
+  variable name: order[i]
+  name: order
+  filename: order
+  editable: False
+  skip undefined: True
+  pdf template file: order.pdf  
+  fields:
+    - "filing_county": ${ "" }
+    - "user_name": ${ users[0].name_full() }
+    - "other_names": ${ "" }
+    - "user_dob": ${ "" }
+    - "user_race": ${ "" }
+    - "user_gender": ${ "" }
+    - "case_number": ${ "" }
+    - "case_number_2": ${ "" }
+    - "user_name_2": ${ users[0].name_full() }
+    - "user_phone": ${ phone_number_formatted(users[0].phone_number) }
+    - "user_email": ${ users[0].email if users[0].has_email_address else "" }
+    - "user_address": ${ users[0].address.on_one_line(bare=True) }
+    - "attorney_number": ${""}
 ---
 attachment:
   variable name: order_denying_request[i]
@@ -1557,7 +1713,7 @@ attachment:
   pdf template file: order_denying_request.pdf  
   fields:
     - "filing_county": ${ "" }
-    - "user_name": ${ "" }
+    - "user_name": ${ users[0].name_full() }
     - "other_names": ${ "" }
     - "user_dob": ${ "" }
     - "user_race": ${ "" }
