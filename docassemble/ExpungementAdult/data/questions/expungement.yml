@@ -155,6 +155,8 @@ question: |
   Expungement info placeholder
 subquestion: |
   ADD content
+
+  Include information about how an open case, pending disposition, still serving sentence may affect eligibility. Waiting periods are determined by law, but judge can decide if a case can be expunged or sealed if it is immediately eligible.
 ---
 id: records info
 continue button field: records_info
@@ -673,20 +675,20 @@ code: |
       if record.unsealable:
         return
       else:
+        if record.must_register:
+          return
         record.se_eligible = True
-        if record.is_felony:
-          if record.must_register:
+        if record.human_trafficking:
+          record.se_when = "last"
+          return
+        if record.discharge_type == "complete":
+          record.se_when = "2"
+          return
+        if record.discharge_type == "revoked" or record.discharge_type == "jail":
+          if ed_program_complete:
+            record.se_when = "now"
             return
-          if record.human_trafficking:
-            record.se_when = "last"
-            return
-          if record.discharge_type == "complete":
-            record.se_when = "2"
-            return
-          if record.discharge_type == "revoked" or record.discharge_type == "jail":
-            if ed_program_complete:
-              record.se_when = "now"
-              return
+        if record.is_felony:  
           record.se_when = "3"
         else:
           record.se_when = "2"  
@@ -758,40 +760,29 @@ code: |
         if not record.supervision_complete:
           record.se_eligible = True
           record.se_when = "2"  
-          # if supervision can be for felonies use the below if, otherwise use above
-          #if record.is_felony:
-          #  record.se_when = "3"
-          #else:
-          #  record.se_when = "2"  
           return
        # these options are for supervision complete 
         if record.supervision_needs_5:
           if record.supervision_complete_plus_5:
             record.ex_eligible = True
             record.ex_when = "5"
+            record.se_eligible = True
+            record.se_when = "2"  
             return
           else:
             record.se_eligible = True
             record.se_when = "2"  
-            # if supervision can be for felonies use the below if, otherwise use above
-            #if record.is_felony:
-            #  record.se_when = "3"
-            #else:
-            #  record.se_when = "2"  
             return
         else:
           if record.supervision_complete_plus_2:
             record.ex_eligible = True
             record.ex_when = "2"
+            record.se_eligible = True
+            record.se_when = "2"  
             return
           else:
             record.se_eligible = True
             record.se_when = "2"  
-            # if supervision can be for felonies use the below if, otherwise use above
-            #if record.is_felony:
-            #  record.se_when = "3"
-            #else:
-            #  record.se_when = "2"  
             return
   
           if record.supervision_needs_2:
@@ -801,21 +792,17 @@ code: |
               return
             else:
               record.se_eligible = True
-              record.se_when = "2"  
-              # if supervision can be for felonies use the below if, otherwise use above
-              #if record.is_felony:
-              #  record.se_when = "3"
-              #else:
-              #  record.se_when = "2"  
+              record.se_when = "2"
               return
   
       # check for supervision expungement exclusions: dui, sex offense v minor, or reckless driving
       if record.supervision_exclusion == "dui" or record.supervision_exclusion == "minor":
         record.se_eligible = True
-        if record.is_felony:
-          record.se_when = "3"
-        else:
-          record.se_when = "2"  
+        record.se_when = "2"  
+        #if record.is_felony:
+        #  record.se_when = "3"
+        #else:
+        #  record.se_when = "2"  
         return
       else: # reckless driving
         if record.reckless_was_under_25:
@@ -824,16 +811,18 @@ code: |
               record.ex_eligible = True
               record.ex_when = "now"
               record.se_eligible = True  
-              if record.is_felony:
-                record.se_when = "3"
-              else:
-                record.se_when = "2"  
+              record.se_when = "2"  
+              #if record.is_felony:
+              #  record.se_when = "3"
+              #else:
+              #  record.se_when = "2"  
               return
         record.se_eligible = True  
-        if record.is_felony:
-          record.se_when = "3"
-        else:
-          record.se_when = "2"  
+        record.se_when = "2"  
+        #if record.is_felony:
+        #  record.se_when = "3"
+        #else:
+        #  record.se_when = "2"  
         return
 
     return
@@ -847,7 +836,7 @@ code: |
 
         
 ---
-id: eligibility report
+id: record not eligibile
 generic object: DAList
 continue button field: x[i].not_eligibile
 question: |
@@ -855,7 +844,6 @@ question: |
 subquestion: |
   Based on your answers, records from the ${x[i].arrest_date} arrest are not eligible for expungement or sealing.
 ---
-# adjust this function for last sentence for sealing eligibility. now=end of last sentence.
 code: |
   def format_waiting_period( period ):
     if period == "now":
@@ -899,6 +887,8 @@ subquestion: |
   
   **Note:** You should only file to expunge or seal records after any waiting periods.
   % endif
+
+  TODO - add collapse template that explains diff between expugement & sealing
 fields:
   - Include these records in your *Request*?: x[i].include
     datatype: radio
@@ -1717,3 +1707,18 @@ attachment:
     - "user_email": ${ users[0].email if users[0].has_email_address else "" }
     - "user_address": ${ users[0].address.on_one_line(bare=True) }
     - "attorney_number": ${""}
+
+
+---
+id: eligibility review screen
+section: Eligibility
+event: section_eligibility
+question: |
+  Eligibility
+subquestion: |
+  Edit your answers below.
+review:
+  - Edit: ed_program_complete
+    button: |
+      **Did you complete an educational goal or job certificate program?**
+      ${word(yesno(ed_program_complete))}
