@@ -258,8 +258,6 @@ subquestion: |
   % for record in records:
   * Arrest date: ${record.arrest_date}
   % endfor
-
-  The forms have room for up to 24 records.
 fields:
   - "Any other records?": records.there_is_another
     datatype: yesnoradio
@@ -613,11 +611,13 @@ code: |
   eligibility_check( records[i] )
 
   # for sealing eligibility maybe ask if ed goal reached to adjust waiting period - careful!
-  records[i].eligibility_report
+  
   if records[i].ex_eligible or records[i].se_eligible:
     if records[i].include != "nope":
       records[i].case_number
       records[i].charge
+  else:
+    records[i].not_eligibile
   records[i].complete = True
 ---
 code: |
@@ -849,23 +849,11 @@ code: |
 ---
 id: eligibility report
 generic object: DAList
-continue button field: x[i].eligibility_report
+continue button field: x[i].not_eligibile
 question: |
-  Eligibility
+  Records from the ${x[i].arrest_date} arrest not eligible
 subquestion: |
-  Based on your answers, records from the ${x[i].arrest_date} arrest may be eligible for:
-
-  % if x[i].ex_eligible:
-    * Expungement, ${format_waiting_period ( x[i].ex_when ) }
-  % endif
-  
-  % if x[i].se_eligible:
-    * Sealing, ${format_waiting_period ( x[i].se_when ) }
-  % endif
-
-  % if not x[i].ex_eligible and not x[i].se_eligible:
-  * Neither expungement or sealing
-  % endif
+  Based on your answers, records from the ${x[i].arrest_date} arrest are not eligible for expungement or sealing.
 ---
 # adjust this function for last sentence for sealing eligibility. now=end of last sentence.
 code: |
@@ -904,12 +892,21 @@ subquestion: |
     * Sealing, ${format_waiting_period ( x[i].se_when ) }
   % endif
  
+  % if not x[i].ex_eligible and not x[i].se_eligible:
+  * Neither expungement or sealing
+  % endif
+  % if x[i].ex_eligible or x[i].se_eligible:
+  
   **Note:** You should only file to expunge or seal records after any waiting periods.
+  % endif
 fields:
   - Include these records in your *Request*?: x[i].include
     datatype: radio
     code: |
       relief_list( records[i] )
+    show if:
+      code: |
+        records[i].ex_eligible or records[i].se_eligible
 ---
 code: |
   def relief_list( record ):
@@ -930,13 +927,12 @@ question: |
 subquestion: |
   If you have a case number, enter the case number. If you do not have a case number, then enter the arrest number.
 
-  If there is also a municipal ordinance code case number or a warrant arrest number **for this offense**, enter those in the **Other record numbers** field. If there is more than one, separate them by a comma.
+  This can be a municipal ordinance code case number or a warrant arrest number.
+
+  TODO - add help on where to find this
 fields:
   - Case or arrest number: x[i].case_number
     maxlength: 20
-  - "Other record numbers for this offense": x[i].other_numbers
-    maxlength: 40
-    required: False
 ---
 
 id: more record details
@@ -1127,10 +1123,6 @@ code: |
     sealing_outcomes.gathered = True
     return
 
----
-code: |
-  if records.number_gathered() >= 24:
-    records.there_is_another = False
 ---
 # delete this question?
 id: eligibility summary
@@ -1377,6 +1369,7 @@ code: |
   additional_expungement.enabled = False
   additional_sealing.enabled = False
   # extra case list (not yet defined): additional_case_list.enabled = False
+  # create case_list_bundle to handle > 70 cases
 ---
 objects:
   - al_user_bundle: ALDocumentBundle.using(elements=[instructions, request_bundle, case_list, order, order_denying_request], filename="expungement_forms.pdf", title="All forms")
