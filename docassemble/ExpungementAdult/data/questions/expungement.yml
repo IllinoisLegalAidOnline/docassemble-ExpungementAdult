@@ -72,6 +72,8 @@ code: |
   set_progress(100)
   nav.set_section('section_download')
   build_case_lists
+  # case_lists_built_debug
+  refresh_record_bundles
   forms_assembling
   snapshot_forms
   get_docs_screen
@@ -1324,6 +1326,30 @@ code: |
   include_all = DAList("include_all", elements = temp_list_ex + temp_list_se)
   build_case_lists = True
 ---
+id: debug
+continue button field: case_lists_built_debug
+question: |
+  Case lists code complete
+subquestion: |
+  Include Ex: ${ include_ex[0].case_number }
+
+  Include Se: ${ include_se[0].case_number }
+
+  Include All: ${ include_all[0].case_number }, ${ include_all[1].case_number }
+
+---
+id: forms assembling
+continue button field: forms_assembling
+question: |
+  Almost done
+subquestion: |
+  After you click **Next**, it may take a few moments to finish making your forms.
+  
+  ###### You do not need to refresh your screen. Hang in there!
+  
+  [NEWLINE]
+
+---
 id: get docs screen
 event: get_docs_screen
 question: |
@@ -1379,19 +1405,125 @@ objects:
   - case_list: ALDocument.using(title="Case List for Request", filename="case_list.pdf", has_addendum=False)
   - order: ALDocument.using(title="Order to Expunge or Seal (draft)", filename="order.pdf", has_addendum=False)
   - order_denying_request: ALDocument.using(title="Order Denying Request (draft)", filename="order_denying_request.pdf", has_addendum=False)
+
+
+
+
+---
+objects:
+  - ex_record_chunks: DAList.using(auto_gather=False, object_type=DAObject)
+  - se_record_chunks: DAList.using(auto_gather=False, object_type=DAObject)
+  - case_list_chunks: DAList.using(auto_gather=False, object_type=DAObject)
+  - ex_addl_bundle: ALDocumentBundle.using(elements=[], title="Additional records for expungement", filename="additional_expungement.pdf", has_addendum=False)
+  - se_addl_bundle: ALDocumentBundle.using(elements=[], title="Additional records for sealing", filename="additional_sealing.pdf", has_addendum=False)
+  - case_list_bundle: ALDocumentBundle.using(elements=[], title="Case List for Request", filename="case_list.pdf", has_addendum=False)
+---
+code: |
+  import math
+
+  MAIN_EX_CAPACITY = 10
+  MAIN_SE_CAPACITY = 10
+  ADDL_EX_CAPACITY = 7
+  ADDL_SE_CAPACITY = 7
+  CASE_LIST_CAPACITY = 70
+
+  ex_count = len(include_ex)
+  se_count = len(include_se)
+  all_count = len(include_all)
+
+  # --- Expungement additional forms ---
+  ex_forms_to_bundle = []
+  ex_addl_bundle.enabled = False
+  ex_record_chunks.clear()
+
+  if ex_count > MAIN_EX_CAPACITY:
+    overflow = ex_count - MAIN_EX_CAPACITY
+    num_addl = math.ceil(overflow / ADDL_EX_CAPACITY)
+    for i in range(num_addl):
+      chunk = ex_record_chunks.appendObject(DAObject)
+      chunk.chunk_start = MAIN_EX_CAPACITY + (i * ADDL_EX_CAPACITY)
+      chunk.chunk_end = min(chunk.chunk_start + ADDL_EX_CAPACITY, ex_count)
+      chunk.ex_addl_form = ALDocument(
+        chunk.instanceName + '.ex_addl_form',
+        title="Additional records for expungement",
+        filename="additional_expungement.pdf",
+        has_addendum=False
+      )
+      chunk.ex_addl_form.enabled = True
+      ex_forms_to_bundle.append(chunk.ex_addl_form)
+      ex_addl_bundle.enabled = True
+
+  ex_record_chunks.gathered = True
+  ex_addl_bundle.elements = ex_forms_to_bundle
+
+  # --- Sealing additional forms ---
+  se_forms_to_bundle = []
+  se_addl_bundle.enabled = False
+  se_record_chunks.clear()
+
+  if se_count > MAIN_SE_CAPACITY:
+    overflow = se_count - MAIN_SE_CAPACITY
+    num_addl = math.ceil(overflow / ADDL_SE_CAPACITY)
+    for i in range(num_addl):
+      chunk = se_record_chunks.appendObject(DAObject)
+      chunk.chunk_start = MAIN_SE_CAPACITY + (i * ADDL_SE_CAPACITY)
+      chunk.chunk_end = min(chunk.chunk_start + ADDL_SE_CAPACITY, se_count)
+      chunk.se_addl_form = ALDocument(
+        chunk.instanceName + '.se_addl_form',
+        title="Additional records for sealing",
+        filename="additional_sealing.pdf",
+        has_addendum=False
+      )
+      chunk.se_addl_form.enabled = True
+      se_forms_to_bundle.append(chunk.se_addl_form)
+      se_addl_bundle.enabled = True
+
+  se_record_chunks.gathered = True
+  se_addl_bundle.elements = se_forms_to_bundle
+
+  # --- Case list forms ---
+  case_list_forms_to_bundle = []
+  case_list_bundle.enabled = False
+  case_list_chunks.clear()
+
+  num_case_lists = math.ceil(all_count / CASE_LIST_CAPACITY)
+  for i in range(num_case_lists):
+    chunk = case_list_chunks.appendObject(DAObject)
+    chunk.chunk_start = i * CASE_LIST_CAPACITY
+    chunk.chunk_end = min(chunk.chunk_start + CASE_LIST_CAPACITY, all_count)
+    chunk.case_list_form = ALDocument(
+      chunk.instanceName + '.case_list_form',
+      title="Case List for Request",
+      filename="case_list.pdf",
+      has_addendum=False
+    )
+    chunk.case_list_form.enabled = True
+    case_list_forms_to_bundle.append(chunk.case_list_form)
+    case_list_bundle.enabled = True
+
+  case_list_chunks.gathered = True
+  case_list_bundle.elements = case_list_forms_to_bundle
+
+  refresh_record_bundles = True
+
+
+
+
+
+
 ---
 code: |
   instructions.enabled = True
   request_bundle.enabled = True
   request.enabled = True
-  case_list.enabled = True
-  case_list_bundle.enabled = True
+
   order.enabled = True
   order_denying_request.enabled = True
 
   # need to build logic for dynamic assembly, make new bundles, add bundles to request_bundle
   additional_expungement.enabled = False
   additional_sealing.enabled = False
+  case_list.enabled = False
   # extra case list (not yet defined): additional_case_list.enabled = False
   # create case_list_bundle to handle > 70 cases
 ---
@@ -1401,7 +1533,6 @@ objects:
 ---
 objects:
   - request_bundle: ALDocumentBundle.using(elements=[request], filename="request.pdf", title="Request to Expunge or Seal")
-  - case_list_bundle: ALDocumentBundle.using(elements=[case_list], filename="case_list.pdf", title="Case List for Request")
 ---
 attachment:
   variable name: instructions[i]
@@ -1573,6 +1704,100 @@ attachment:
     - "user_phone": ${ phone_number_formatted(users[0].phone_number) }
     - "user_email": ${ users[0].email if users[0].has_email_address else "" }
     - "user_address": ${ users[0].address.on_one_line(bare=True) }
+
+
+
+
+---
+generic object: DAObject
+attachment:
+  variable name: x.ex_addl_form[i]
+  name: additional_expungement
+  filename: additional_expungement
+  skip undefined: True
+  editable: False
+  pdf template file: additional_expungement.pdf
+  fields:
+    - "filing_county": ${ "" }
+    - "user_name": ${ "" }
+    - "other_names": ${ "" }
+    - "user_dob": ${ "" }
+    - "user_race": ${ "" }
+    - "user_gender": ${ "" }
+    - "case_number": ${ "" }
+    - "user_name_2": ${ users[0].name_full() }
+    - "e_sign_name": ${ users[0].name_full() if e_signature else "" }
+    - "attorney_number": ${""}
+    - "ex_arrest_or_case_number_1": ${ include_ex[x.chunk_start].case_number if x.chunk_end > x.chunk_start else "" }
+    - "ex_arresting_agency_1": ${ "" }
+    - "ex_charge_1": ${ "" }
+    - "ex_arrest_date_1": ${ "" }
+    - "ex_outcome_1": ${ "" }
+    - "ex_arrest_or_case_number_2": ${ "" }
+    - "ex_arresting_agency_2": ${ include_ex[x.chunk_start + 1].case_number if x.chunk_end > x.chunk_start + 1 else "" }
+    - "ex_charge_2": ${ "" }
+    - "ex_arrest_date_2": ${ "" }
+    - "ex_outcome_2": ${ "" }
+
+
+
+---
+generic object: DAObject
+attachment:
+  variable name: x.se_addl_form[i]
+  name: additional_sealing
+  filename: additional_sealing
+  skip undefined: True
+  editable: False
+  pdf template file: additional_sealing.pdf
+  fields:
+    - "filing_county": ${ "" }
+    - "user_name": ${ "" }
+    - "other_names": ${ "" }
+    - "user_dob": ${ "" }
+    - "user_race": ${ "" }
+    - "user_gender": ${ "" }
+    - "case_number": ${ "" }
+    - "user_name_2": ${ users[0].name_full() }
+    - "e_sign_name": ${ users[0].name_full() if e_signature else "" }
+    - "attorney_number": ${""}
+    - "se_arrest_or_case_number_1": ${ include_se[x.chunk_start].case_number if x.chunk_end > x.chunk_start else "" }
+    - "se_arresting_agency_1": ${ "" }
+    - "se_charge_1": ${ "" }
+    - "se_arrest_date_1": ${ "" }
+    - "se_outcome_1": ${ "" }
+    - "se_arrest_or_case_number_2": ${ include_ex[x.chunk_start + 1].case_number if x.chunk_end > x.chunk_start + 1 else "" }
+    - "se_arresting_agency_2": ${ "" }
+    - "se_charge_2": ${ "" }
+    - "se_arrest_date_2": ${ "" }
+    - "se_outcome_2": ${ "" }
+
+
+
+---
+generic object: DAObject
+attachment:
+  variable name: x.case_list_form[i]
+  name: case_list
+  filename: case_list
+  skip undefined: True
+  editable: False
+  pdf template file: case_list.pdf
+  fields:
+    - "filing_county": ${ "" }
+    - "user_name": ${ "" }
+    - "other_names": ${ "" }
+    - "user_dob": ${ "" }
+    - "user_race": ${ "" }
+    - "user_gender": ${ "" }
+    - "case_number": ${ "" }
+    - "record_0": ${ "" }
+    - "record_0": ${ include_all[x.chunk_start].case_number if x.chunk_end > x.chunk_start else "" }
+    - "record_1": ${ include_all[x.chunk_start + 1].case_number if x.chunk_end > x.chunk_start + 1 else "" }
+    # ... etc.
+
+
+
 
 ---
 attachment:
