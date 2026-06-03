@@ -16,6 +16,9 @@ objects:
   - court_list: ALCourtLoader.using(file_name='docassemble.ILAO:data/sources/il_courts.xlsx')
   - expungement_outcomes: DAList.using(there_are_any=True)
   - sealing_outcomes: DAList.using(there_are_any=True)
+  - include_ex: DAList.using(object_type=Thing, there_are_any=True)
+  - include_se: DAList.using(object_type=Thing, there_are_any=True)
+  - include_all: DAList.using(object_type=Thing, there_are_any=True)
 ---
 code: |
   al_form_type = 'starts_case'
@@ -68,6 +71,7 @@ code: |
 
   set_progress(100)
   nav.set_section('section_download')
+  build_case_lists
   forms_assembling
   snapshot_forms
   get_docs_screen
@@ -573,6 +577,8 @@ subquestion: |
   * Your participation in the offense was a direct result of human trafficking under Section 10-9 of the Criminal Code of 2012 or a severe form of trafficking under the federal Trafficking Victims Protection Act.
 
   **Note:** Select **Yes** only if all of the above are true.
+
+  There may be other remedies beyond expungement and sealing if you were a victim of human trafficking. A lawyer can explain your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area. 
 fields:
   - "Were you a victim of human trafficking when the offense was committed?": records[i].human_trafficking
     datatype: yesnoradio
@@ -705,10 +711,18 @@ code: |
       elif record.diversion_status == "complete":
         record.ex_eligible = True
         record.ex_when = "now"
+        if record.is_felony:
+          record.se_when = "3"
+        else:
+          record.se_when = "2"  
         return
       else: # will complete diversion within 61 days
         record.ex_eligible = True
         record.ex_when = "61"
+        if record.is_felony:
+          record.se_when = "3"
+        else:
+          record.se_when = "2"  
         return
   
     if record.after_arrest == "qualified_probation":
@@ -789,6 +803,11 @@ code: |
             if record.supervision_complete_plus_2:
               record.ex_eligible = True
               record.ex_when = "2"
+              record.se_eligible = True
+              if record.is_felony:
+                record.se_when = "3"
+              else:
+                record.se_when = "2"  
               return
             else:
               record.se_eligible = True
@@ -1290,7 +1309,20 @@ fields:
 terms:
   - "e-signature": |
       An e-signature is an electronic signature. It is a digital version of a signature that has the same effect as a hand-written signature.
-
+---
+reconsider: True
+code: |
+  temp_list_ex = []
+  temp_list_se = []
+  for record in records:
+    if record.include == "expunge":
+      temp_list_ex.append(record)
+    elif record.include == "seal":
+      temp_list_se.append(record)
+  include_ex = DAList("include_ex", elements = temp_list_ex)
+  include_se = DAList("include_se", elements = temp_list_se)
+  include_all = DAList("include_all", elements = temp_list_ex + temp_list_se)
+  build_case_lists = True
 ---
 id: get docs screen
 event: get_docs_screen
@@ -1350,8 +1382,10 @@ objects:
 ---
 code: |
   instructions.enabled = True
+  request_bundle.enabled = True
   request.enabled = True
   case_list.enabled = True
+  case_list_bundle.enabled = True
   order.enabled = True
   order_denying_request.enabled = True
 
@@ -1362,11 +1396,12 @@ code: |
   # create case_list_bundle to handle > 70 cases
 ---
 objects:
-  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, request_bundle, case_list, order, order_denying_request], filename="expungement_forms.pdf", title="All forms")
+  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, request_bundle, case_list_bundle, order, order_denying_request], filename="expungement_forms.pdf", title="All forms")
   #- al_court_bundle: ALDocumentBundle.using(elements=[request_bundle, order_denying_request], filename="expungement_forms.pdf", title="All forms")
 ---
 objects:
   - request_bundle: ALDocumentBundle.using(elements=[request], filename="request.pdf", title="Request to Expunge or Seal")
+  - case_list_bundle: ALDocumentBundle.using(elements=[case_list], filename="case_list.pdf", title="Case List for Request")
 ---
 attachment:
   variable name: instructions[i]
