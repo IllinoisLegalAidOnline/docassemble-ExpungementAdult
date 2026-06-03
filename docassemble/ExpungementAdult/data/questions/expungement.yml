@@ -1663,6 +1663,77 @@ attachment:
     - "user_race": ${ "" }
     - "user_gender": ${ "" }
     - "case_number": ${ "" }
+    - "record_0": ${ "" }
+    - "record_1": ${ "" }
+    - "record_2": ${ "" }
+    - "record_3": ${ "" }
+    - "record_4": ${ "" }
+    - "record_5": ${ "" }
+    - "record_6": ${ "" }
+    - "record_7": ${ "" }
+    - "record_8": ${ "" }
+    - "record_9": ${ "" }
+    - "record_10": ${ "" }
+    - "record_11": ${ "" }
+    - "record_12": ${ "" }
+    - "record_13": ${ "" }
+    - "record_14": ${ "" }
+    - "record_15": ${ "" }
+    - "record_16": ${ "" }
+    - "record_17": ${ "" }
+    - "record_18": ${ "" }
+    - "record_19": ${ "" }
+    - "record_20": ${ "" }
+    - "record_21": ${ "" }
+    - "record_22": ${ "" }
+    - "record_23": ${ "" }
+    - "record_24": ${ "" }
+    - "record_25": ${ "" }
+    - "record_26": ${ "" }
+    - "record_27": ${ "" }
+    - "record_28": ${ "" }
+    - "record_29": ${ "" }
+    - "record_30": ${ "" }
+    - "record_31": ${ "" }
+    - "record_32": ${ "" }
+    - "record_33": ${ "" }
+    - "record_34": ${ "" }
+    - "record_35": ${ "" }
+    - "record_36": ${ "" }
+    - "record_37": ${ "" }
+    - "record_38": ${ "" }
+    - "record_39": ${ "" }
+    - "record_40": ${ "" }
+    - "record_41": ${ "" }
+    - "record_42": ${ "" }
+    - "record_43": ${ "" }
+    - "record_44": ${ "" }
+    - "record_45": ${ "" }
+    - "record_46": ${ "" }
+    - "record_47": ${ "" }
+    - "record_48": ${ "" }
+    - "record_49": ${ "" }
+    - "record_50": ${ "" }
+    - "record_51": ${ "" }
+    - "record_52": ${ "" }
+    - "record_53": ${ "" }
+    - "record_54": ${ "" }
+    - "record_55": ${ "" }
+    - "record_56": ${ "" }
+    - "record_57": ${ "" }
+    - "record_58": ${ "" }
+    - "record_59": ${ "" }
+    - "record_60": ${ "" }
+    - "record_61": ${ "" }
+    - "record_62": ${ "" }
+    - "record_63": ${ "" }
+    - "record_64": ${ "" }
+    - "record_65": ${ "" }
+    - "record_66": ${ "" }
+    - "record_67": ${ "" }
+    - "record_68": ${ "" }
+    - "record_69": ${ "" }    
+    - "additional_case_list_cb": ${ "" }
 
 ---
 attachment:
