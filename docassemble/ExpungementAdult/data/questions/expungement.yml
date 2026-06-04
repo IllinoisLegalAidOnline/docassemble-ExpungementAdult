@@ -1532,7 +1532,7 @@ objects:
   #- al_court_bundle: ALDocumentBundle.using(elements=[request_bundle, order_denying_request], filename="expungement_forms.pdf", title="All forms")
 ---
 objects:
-  - request_bundle: ALDocumentBundle.using(elements=[request], filename="request.pdf", title="Request to Expunge or Seal")
+  - request_bundle: ALDocumentBundle.using(elements=[request, ex_addl_bundle, se_addl_bundle], filename="request.pdf", title="Request to Expunge or Seal")
 ---
 attachment:
   variable name: instructions[i]
@@ -1564,9 +1564,9 @@ attachment:
     - "case_number_4": ${ "" }
     - "case_number_5": ${ "" }
     - "case_number_6": ${ "" }
-    - "expunge_yes": ${ "" }
-    - "expunge_no": ${ "" }
-    - "ex_arrest_or_case_number_0": ${ "" }
+    - "expunge_yes": ${ include_ex.number() > 0 }
+    - "expunge_no": ${ include_ex.number() == 0 }
+    - "ex_arrest_or_case_number_0": ${ include_ex[0].case_number if include_ex.number() > 0 else "" }
     - "ex_arresting_agency_0": ${ "" }
     - "ex_charge_0": ${ "" }
     - "ex_arrest_date_0": ${ "" }
@@ -1611,7 +1611,7 @@ attachment:
     - "ex_charge_8": ${ "" }
     - "ex_arrest_date_8": ${ "" }
     - "ex_outcome_8": ${ "" }
-    - "ex_arrest_or_case_number_9": ${ "" }
+    - "ex_arrest_or_case_number_9": ${ include_ex[9].case_number if include_ex.number() > 9 else "" }
     - "ex_arresting_agency_9": ${ "" }
     - "ex_charge_9": ${ "" }
     - "ex_arrest_date_9": ${ "" }
@@ -1633,8 +1633,8 @@ attachment:
     - "ex_supervision_complete_2": ${ "" }
     - "ex_not_supervision_exclusion": ${ "" }
     - "ex_reckless_driving": ${ "" }
-    - "seal_yes": ${ "" }
-    - "seal_no": ${ "" }
+    - "seal_yes": ${ include_se.number() > 0 }
+    - "seal_no": ${ include_se.number() == 0 }
     - "se_arrest_or_case_number_0": ${ "" }
     - "se_arresting_agency_0": ${ "" }
     - "se_charge_0": ${ "" }
@@ -1733,11 +1733,13 @@ attachment:
     - "ex_charge_1": ${ "" }
     - "ex_arrest_date_1": ${ "" }
     - "ex_outcome_1": ${ "" }
-    - "ex_arrest_or_case_number_2": ${ "" }
-    - "ex_arresting_agency_2": ${ include_ex[x.chunk_start + 1].case_number if x.chunk_end > x.chunk_start + 1 else "" }
+    - "ex_arrest_or_case_number_2": ${ include_ex[x.chunk_start + 1].case_number if x.chunk_end > x.chunk_start + 1 else "" }
+    - "ex_arresting_agency_2": ${ "" }
     - "ex_charge_2": ${ "" }
     - "ex_arrest_date_2": ${ "" }
     - "ex_outcome_2": ${ "" }
+
+    - "ex_arrest_or_case_number_7": ${ include_ex[x.chunk_start + 6].case_number if x.chunk_end > x.chunk_start + 6 else "" }
 
 
 
@@ -1794,6 +1796,9 @@ attachment:
     - "record_0": ${ "" }
     - "record_0": ${ include_all[x.chunk_start].case_number if x.chunk_end > x.chunk_start else "" }
     - "record_1": ${ include_all[x.chunk_start + 1].case_number if x.chunk_end > x.chunk_start + 1 else "" }
+    - "record_5": ${ include_all[x.chunk_start + 5].case_number if x.chunk_end > x.chunk_start + 5 else "" }
+    - "record_10": ${ include_all[x.chunk_start + 10].case_number if x.chunk_end > x.chunk_start + 10 else "" }
+    - "record_15": ${ include_all[x.chunk_start + 15].case_number if x.chunk_end > x.chunk_start + 15 else "" }
     # ... etc.
 
 
