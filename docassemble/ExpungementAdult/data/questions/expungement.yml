@@ -2400,8 +2400,34 @@ review:
   - note: |
       Based on your answers, records related to this arrest are not eligible for expungement or sealing.  **Note:** This could change if you edit your answers.
     show if: not x.ex_eligible and not x.se_eligible
-continue button label: Next
 
+  - Edit: x.case_number
+    button: |  
+      **Case or arrest number:**
+      ${ x.case_number}
+    show if: x.include == "expunge" or x.include == "seal"
+  - Edit: x.agency
+    button: |
+      % if x.include == "expunge":
+      **Details about the records to expunge:**
+      % else:
+      **Details about the records to seal:**
+      % endif
+
+      **Arresting agency:** ${ x.agency }
+
+      **Charge(s):** ${ x.charge }
+
+      **Outcome code:**
+      % if x.include == "expunge":
+      ${ x.ex_outcome }
+      % endif
+      % if x.include == "seal":
+      ${ x.se_outcome}
+      % endif
+    show if: x.include == "expunge" or x.include == "seal"
+
+continue button label: Next
 
 ---
 id: about you review screen
