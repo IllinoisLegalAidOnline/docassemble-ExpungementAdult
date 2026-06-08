@@ -285,7 +285,7 @@ id: conviction special status
 question: |
   Do any of these apply to the conviction from the ${records[i].arrest_date} arrest? 
 subquestion: |
-  These special situations might make the records eligible for expungement.
+  These special situations might make the records eligible for expungement or sealing.
 
   **Note:** If you received a pardon or a Certificate of Expungement or Sealing from the Prisoner Review Board, attach it to your *Request* when you file it.
 
@@ -623,7 +623,7 @@ code: |
   # for sealing eligibility maybe ask if ed goal reached to adjust waiting period - careful!
   
   if records[i].ex_eligible or records[i].se_eligible:
-    if records[i].include != "nope":
+    if records[i].include != "no":
       records[i].case_number
       records[i].charge
   else:
@@ -927,7 +927,7 @@ code: |
       relief.append( { "expunge" : "Yes, I want to **expunge** these records." })
     if record.se_eligible:
       relief.append( { "seal" : "Yes, I want to **seal** these records." })
-    relief.append( { "nope" : "No, I do not want to include these records." })
+    relief.append( { "no" : "No, I do not want to include these records." })
     return relief
 ---
 id: case or arrest number
@@ -1420,6 +1420,10 @@ code: |
   ADDL_EX_CAPACITY = 7
   ADDL_SE_CAPACITY = 7
   CASE_LIST_CAPACITY = 70
+  MAIN_ORDER_EX_CAPACITY = 28
+  MAIN_ORDER_SE_CAPACITY = 28
+  ADDL_ORDER_EX_CAPACITY = 28
+  ADDL_ORDER_SE_CAPACITY = 28
 
   ex_count = len(include_ex)
   se_count = len(include_se)
@@ -2020,7 +2024,14 @@ review:
   - Edit: filing_county
     button: |
       **County where you want to expunge or seal records:**
-      ${ filing_county }      
+      ${ filing_county }
+  - Edit: records.revisit
+    button: |
+      **Records:**
+
+      % for my_var in records:
+        * Arrest date: ${ my_var.arrest_date }
+      % endfor
   - Edit: ed_program_complete
     button: |
       **Did you complete an educational goal or job certificate program?**
@@ -2097,12 +2108,299 @@ review:
   - Edit: filing_county
     button: |
       **County where you want to expunge or seal records:**
-      ${ filing_county }      
+      ${ filing_county }
+  - Edit: records.revisit
+    button: |
+      **Records:**
+
+      % for my_var in records:
+        * Arrest date: ${ my_var.arrest_date }
+      % endfor
   - Edit: ed_program_complete
     button: |
       **Did you complete an educational goal or job certificate program?**
       ${word(yesno(ed_program_complete))} [NEWLINE][NEWLINE]
       **Note:** Changing this answer may affect waiting periods.
+
+---
+id: records revisit review screen
+continue button field: records.revisit
+question: |
+  Edit records
+subquestion: |
+  Click **Edit** to review record details.
+
+  **Note:** Changing these details may affect eligibility for expungement and sealing. Be sure to review your forms before filing.
+
+  ${ records.table }
+
+  ${ records.add_action() }
+---
+table: records.table
+rows: records
+columns:
+  - Arrest date: |
+      row_item.arrest_date if defined("row_item.arrest_date") else ""
+  - Include in your *Request*? (records ineligible if blank): |
+      row_item.include.capitalize() if defined("row_item.include") else ""
+edit:
+  - review_records_details
+delete buttons: True
+confirm: True
+---
+id: record details review screen
+continue button field: x.review_records_details
+generic object: DAObject
+question: |
+  Edit record details
+subquestion: |
+  **Note:** Changing these details may affect eligibility for expungement and sealing. Be sure to review your forms before filing.
+review: 
+  - Edit: x.arrest_date
+    button: |
+      **Arrest date:**
+      ${ x.arrest_date  }
+  - Edit: x.traffic
+    button: |
+      **Was this for a minor traffic offense (Class C misdmeanor)?**
+      ${ word(yesno(x.traffic))}
+  - Edit: x.rwc
+    button: |
+      **Were you released without being charged after the arrest?**
+      ${word(yesno(x.rwc))}
+  - Edit: x.after_arrest
+    button: |
+      **What happened as a result of the arrest?**
+
+      % if x.after_arrest == "dismissed":
+      * I was charged, but was later **acquitted** or the case was **dismissed**.
+      % elif x.after_arrest == "diversion":
+      * I participated in a problem-solving court, pre-plea **diversion**, or post-plea diversion program.
+      % elif x.after_arrest == "qualified_probation":
+      * I received a sentence of **Qualified Probation**. This might also be called Second Chance, 410, 710, 1410, or TASC probation.
+      % elif x.after_arrest == "weapons":
+      * I participated in the **First Time Weapon Offense Program**.
+      % elif x.after_arrest == "drugs":
+      * I received a sentence for a **controlled substance**.
+      % elif x.after_arrest == "supervision":
+      * I received a sentence of **supervision**.
+      % else:
+      * I was **convicted** and received a sentence of jail or prison time, a different kind of probation, conditional discharge, time considered served, or a fine.
+      % endif
+  - Edit: x.diversion_status
+    button: |
+      **What is the status of the problem-solving court or diversion program?**
+
+      % if x.diversion_status == "complete":
+      * I successfully completed the program.
+      % elif x.diversion_status == "soon":
+      * I expect to successfully complete the program within 61 days of filing my request to expunge.
+      % else:
+      * I did not complete the program.
+      % endif
+    show if: x.after_arrest == "diversion"
+  - Edit: x.qp_type
+    button: |
+      **What kind of Qaulified Probation did you receive?**
+
+      % if x.qp_type == "second":
+      * Second chance
+      % elif x.qp_type == "other_qp":
+      * 410, 710, 1410, or TASC probation
+      % else:
+      * Another type of Qualified Probation
+      % endif
+    show if: x.after_arrest == "qualified_probation"
+  - Edit: x.qp_complete
+    button: |
+      **Did you successfully complete your Qualified Probation?**
+      ${word(yesno(x.qp_complete))}
+    show if: x.after_arrest == "qualified_probation"
+  - Edit: x.qp_complete_plus_5
+    button: |
+      **Have at least 5 years passed since you successfully completed your Qualified Probation?**
+      ${word(yesno(x.qp_complete_plus_5))} 
+    show if: x.after_arrest == "qualified_probation" and x.qp_complete and x.qp_type != "second"
+  - Edit: x.supervision_exclusion
+    button: |
+      **Was your supervision for an excludable offense?**
+
+      % if x.supervision_exclusion == "dui":
+      * Yes, it was for Driving Under the Influence.
+      % elif x.supervision_exclusion == "minor":
+      * Yes, it was for a sexual offense against a person under the age of 18.
+      % elif x.supervision_exclusion == "reckless":
+      * Yes, it was for Reckless Driving.
+      % else:
+      * No, it was for something other than a DUI, a sexual offense against a minor, or Reckless Driving.
+      % endif
+    show if: x.after_arrest == "supervision"
+  - Edit: x.reckless_was_under_25
+    button: |
+      **Were you under age 25 at the time of the Reckless Driving offense?**
+      ${word(yesno(x.reckless_was_under_25))}
+    show if: x.after_arrest == "supervision" and x.supervision_exclusion == "reckless"
+  - Edit: x.reckless_other
+    button: |
+      **Do you have any other convictions for DUI or Reckless Driving?**
+      ${word(yesno(x.reckless_other))}
+    show if: x.after_arrest == "supervision" and x.supervision_exclusion == "reckless" and x.reckless_was_under_25
+  - Edit: x.reckless_now_25
+    button: |
+      **Are you now age 25 or older?**
+      ${word(yesno(x.reckless_now_25))}
+    show if: x.after_arrest == "supervision" and x.supervision_exclusion == "reckless" and x.reckless_was_under_25 and not x.reckless_other
+  - Edit: x.supervision_needs_5
+    button: |
+      **Was your supervision for any of these offenses?**
+      ${word(yesno(x.supervision_needs_5))}
+
+      * Domestic Battery
+      * Criminal Sexual Abuse
+      * Driving without Insurance
+      * Driving with Registration Suspended for Non-Insurance
+      * Display of False Insurance Card
+      * Scrap Processors to Keep Records
+    show if: x.after_arrest == "supervision" and x.supervision_exclusion == "none"
+  - Edit: x.supervision_complete
+    button: |
+      **Did you successfully complete your supervision?**
+      ${word(yesno(x.supervision_complete))}
+    show if: x.after_arrest == "supervision" and x.supervision_exclusion == "none"
+  - Edit: x.supervision_complete_plus_5
+    button: |
+      **Have at least 5 years passed since you successfully completed your supervision?**
+      ${word(yesno(x.supervision_complete_plus_5))}
+    show if: x.after_arrest == "supervision" and x.supervision_exclusion == "none" and x.supervision_needs_5
+  - Edit: x.supervision_complete_plus_2
+    button: |
+      **Have at least 2 years passed since you successfully completed your supervision?**
+      ${word(yesno(x.supervision_complete_plus_2))}
+    show if: x.after_arrest == "supervision" and x.supervision_exclusion == "none" and not x.supervision_needs_5
+  - Edit: x.weapons_complete
+    button: |
+      **Did you successfully complete the First Time Weapon Offense program?**
+      ${word(yesno(x.weapons_complete))}
+    show if: x.after_arrest == "weapons"
+  - Edit: x.drugs_complete
+    button: |
+      **Did you successfully complete the sentence for a controlled substance?**
+      ${word(yesno(x.drugs_complete))}
+    show if: x.after_arrest == "drugs"
+  - Edit: x.reversed_none
+    button: |
+      **Did any special situations apply?**
+      ${word(yesno(not x.reversed_none))}
+      
+      * The conviction was reversed or vacated,
+      * You received a pardon or a Certificate of Eligibility for Expungement or Sealing, or
+      * You were you found by a court that you were factually innocent in the case.
+    show if: x.after_arrest == "conviction"    
+  - Edit: x.reversed_none
+    button: |
+      **What special situation(s) applied?**
+      
+      % if x.reversed:
+      * I was convicted, but the conviction was reversed or vacated.
+      % endif
+      % if x.pardon:
+      * I received a pardon from the Governor of the State of Illinois allowing expungement.
+      % endif
+      % if x.certificate_ex:
+      * I received a Certificate of Eligibility for **Expungement** by the Prisoner Review Board.
+      % endif
+      % if x.certificate_se:
+      * I received a Certificate of Eligibility for **Sealing** by the Prisoner Review Board.
+      % endif
+      % if x.factually_innocent:
+      * I was found by a court that I am factually innocent in the case.
+      % endif
+    show if: x.after_arrest == "conviction" and not x.reversed_none
+      
+  - Edit: x.is_felony
+    button: |
+      **What type of offense were you charged with?**
+
+      % if x.is_felony:
+      * A felony.
+      % else:
+      * A misdemeanor or ordinance violation.
+      % endif
+    show if: x.include != "expunge"
+    
+  - Edit: x.reckless_conviction
+    button: |
+      **Was your conviction for Reckless Driving?**
+      ${word(yesno(x.reckless_conviction))}
+    show if: x.after_arrest == "conviction"
+  - Edit: x.reckless_was_under_25_conviction
+    button: |
+      **Were you under age 25 at the time of the Reckless Driving offense?**
+      ${word(yesno(x.reckless_was_under_25_conviction))}
+    show if: x.after_arrest == "conviction" and x.reckless_conviction
+  - Edit: x.reckless_other_conviction
+    button: |
+      **Do you have any other convictions for DUI or Reckless Driving?**
+      ${word(yesno(x.reckless_other_conviction))}
+    show if: x.after_arrest == "conviction" and x.reckless_conviction and x.reckless_was_under_25_conviction
+  - Edit: x.reckless_now_25_conviction
+    button: |
+      **Are you now age 25 or older?**
+      ${word(yesno(x.reckless_now_25_conviction))}
+    show if: x.after_arrest == "conviction" and x.reckless_conviction and x.reckless_was_under_25_conviction and not x.reckless_other_conviction
+  - Edit: x.unsealable
+    button: |
+      **Did the arrest result in a supervision or conviction for something in these categories?**
+      ${word(yesno(x.unsealable))}
+
+      * Some Driving Offenses
+      * Domestic Battery
+      * Violation of an Order of Protection, Civil No Contact Order, or Stalking No Contact Order
+      * Some Sexual Offenses
+      * Some Animal Offenses
+    show if: x.after_arrest == "conviction" or x.after_arrest == "supervision"
+  - Edit: x.must_register
+    button: |
+      **Do you have to register on a public registry for this offense?**
+      ${word(yesno(x.must_register))}
+    show if: x.after_arrest == "conviction"
+  - Edit: x.human_trafficking
+    button: |
+      **Were you a victim of human trafficking when the offense was committed?**
+      ${word(yesno(x.human_trafficking))}
+    show if: x.after_arrest == "conviction"
+  - Edit: x.discharge_type
+    button: |
+      **After the conviction, did you receive a sentence of conditional discharge or probation, or did you complete an Illinois prison or jail sentence?**
+
+      % if x.discharge_type == "complete":
+      * Yes, I completed a sentence of conditional discharge or probation and the sentence **was not revoked**.
+      % elif x.discharge_type == "revoked":
+      * Yes, I received a sentence of conditional discharge or probation and the sentence **was revoked**.
+      % elif x.discharge_type == "jail":
+      * Yes, I completed an Illinois prison or jail sentence.
+      % else:
+      * No, I did not receive a sentence of conditional discharge or probation. I did not complete an Illinois prison or jail sentence.
+      % endif
+    show if: x.after_arrest == "conviction"
+
+  
+  - Edit: x.include
+    button: |
+      **Do you want to include records related to this arrest in your *Request*?**
+      
+      % if x.include == "expunge":
+      * Yes, for expungement.
+      % elif x.include == "seal":
+      * Yes, for sealing.
+      % else:
+      * No.
+      % endif
+    show if: x.include != "" and (x.ex_eligible or x.se_eligible)
+  - note: |
+      Based on your answers, records related to this arrest are not eligible for expungement or sealing.  **Note:** This could change if you edit your answers.
+    show if: not x.ex_eligible and not x.se_eligible
+continue button label: Next
 
 
 ---
