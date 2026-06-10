@@ -852,15 +852,6 @@ code: |
     #   record.se_when = "2"  
     # return
 
-        
----
-id: record not eligibile
-generic object: DAList
-continue button field: x[i].not_eligible
-question: |
-  Records from the ${x[i].arrest_date} arrest not eligible
-subquestion: |
-  Based on your answers, records from the ${x[i].arrest_date} arrest are not eligible for expungement or sealing.
 ---
 code: |
   def format_waiting_period( period ):
@@ -882,39 +873,6 @@ code: |
 terms:
   - last sentence: |
       **Last sentence** means the latest completion date of any sentence you received in Illinois or any other state.
----
-id: include records
-generic object: DAList
-question: |
-  Do you want to include records from the ${x[i].arrest_date} arrest in your *Request*?
-subquestion: |
-  Based on your answers, records from the ${x[i].arrest_date} arrest may be eligible for:
-
-  % if x[i].ex_eligible:
-    * Expungement, ${format_waiting_period ( x[i].ex_when ) }
-  % endif
-  
-  % if x[i].se_eligible:
-    * Sealing, ${format_waiting_period ( x[i].se_when ) }
-  % endif
- 
-  % if not x[i].ex_eligible and not x[i].se_eligible:
-  * Neither expungement or sealing
-  % endif
-  % if x[i].ex_eligible or x[i].se_eligible:
-  
-  **Note:** You should only file to expunge or seal records after any waiting periods.
-  % endif
-
-  TODO - add collapse template that explains diff between expugement & sealing
-fields:
-  - Include these records in your *Request*?: x[i].include
-    datatype: radio
-    code: |
-      relief_list( records[i] )
-    show if:
-      code: |
-        records[i].ex_eligible or records[i].se_eligible
 ---
 code: |
   def relief_list( record ):
@@ -1172,17 +1130,6 @@ code: |
     })
     sealing_outcomes.gathered = True
     return
-
----
-# delete this question?
-id: eligibility summary
-continue button field: eligibility_summary
-question: |
-  Which records do you want to include in your *Request*?
-subquestion: |
-  PLACEHOLDER
----
-
 
 ---
 id: user name
@@ -1447,9 +1394,11 @@ objects:
   - ex_record_chunks: DAList.using(auto_gather=False, object_type=DAObject)
   - se_record_chunks: DAList.using(auto_gather=False, object_type=DAObject)
   - case_list_chunks: DAList.using(auto_gather=False, object_type=DAObject)
+  - order_chunks: DAList.using(auto_gather=False, object_type=DAObject)
   - ex_addl_bundle: ALDocumentBundle.using(elements=[], title="Additional records for expungement", filename="additional_expungement.pdf", has_addendum=False)
   - se_addl_bundle: ALDocumentBundle.using(elements=[], title="Additional records for sealing", filename="additional_sealing.pdf", has_addendum=False)
   - case_list_bundle: ALDocumentBundle.using(elements=[], title="Case List for Request", filename="case_list.pdf", has_addendum=False)
+  - order_bundle: ALDocumentBundle.using(elements=[], title="Order to Expunge or Seal (draft)", filename="order.pdf", has_addendum=False)
 ---
 code: |
   import math
@@ -1541,20 +1490,41 @@ code: |
   case_list_chunks.gathered = True
   case_list_bundle.elements = case_list_forms_to_bundle
 
+  # --- Order forms ---
+  order_forms_to_bundle = []
+  order_chunks.clear()
+
+  num_order_forms = max(
+    math.ceil(ex_count / MAIN_ORDER_EX_CAPACITY),
+    math.ceil(se_count / MAIN_ORDER_SE_CAPACITY)
+  )
+
+  for i in range(num_order_forms):
+    chunk = order_chunks.appendObject(DAObject)
+    chunk.ex_chunk_start = i * MAIN_ORDER_EX_CAPACITY
+    chunk.ex_chunk_end = min(chunk.ex_chunk_start + MAIN_ORDER_EX_CAPACITY, ex_count)
+    chunk.se_chunk_start = i * MAIN_ORDER_SE_CAPACITY
+    chunk.se_chunk_end = min(chunk.se_chunk_start + MAIN_ORDER_SE_CAPACITY, se_count)
+    chunk.order_form = ALDocument(
+      chunk.instanceName + '.order_form',
+      title="Order to Expunge or Seal",
+      filename="order.pdf",
+      has_addendum=False
+    )
+    chunk.order_form.enabled = True
+    order_forms_to_bundle.append(chunk.order_form)
+
+  order_chunks.gathered = True
+  order_bundle.elements = order_forms_to_bundle
+
   refresh_record_bundles = True
-
-
-
-
-
 
 ---
 code: |
   instructions.enabled = True
   request_bundle.enabled = True
   request.enabled = True
-
-  order.enabled = True
+  order_bundle.enabled = True
   order_denying_request.enabled = True
 
 ---
@@ -1747,9 +1717,6 @@ attachment:
     - "user_phone": ${ phone_number_formatted(users[0].phone_number) }
     - "user_email": ${ users[0].email if users[0].has_email_address else "" }
     - "user_address": ${ users[0].address.on_one_line(bare=True) }
-
-
-
 
 ---
 generic object: DAObject
@@ -1982,10 +1949,10 @@ attachment:
     - "record_69": ${ include_all[x.chunk_start + 69].case_number if x.chunk_end > x.chunk_start + 69 else "" }
     - "additional_case_list_cb": ${ "" }
 
-
 ---
+generic object: DAObject
 attachment:
-  variable name: order[i]
+  variable name: x.order_form[i]
   name: order
   filename: order
   editable: False
@@ -2015,6 +1982,67 @@ attachment:
     - "user_email": ${ users[0].email if users[0].has_email_address else "" }
     - "user_address": ${ users[0].address.on_one_line(bare=True) }
     - "attorney_number": ${""}
+    - "ex_record_0": ${ include_ex[x.ex_chunk_start].case_number if x.ex_chunk_end > x.ex_chunk_start else "" }
+    - "ex_record_1": ${ include_ex[x.ex_chunk_start + 1].case_number if x.ex_chunk_end > x.ex_chunk_start + 1 else "" }
+    - "ex_record_2": ${ include_ex[x.ex_chunk_start + 2].case_number if x.ex_chunk_end > x.ex_chunk_start + 2 else "" }
+    - "ex_record_3": ${ include_ex[x.ex_chunk_start + 3].case_number if x.ex_chunk_end > x.ex_chunk_start + 3 else "" }
+    - "ex_record_4": ${ include_ex[x.ex_chunk_start + 4].case_number if x.ex_chunk_end > x.ex_chunk_start + 4 else "" }
+    - "ex_record_5": ${ include_ex[x.ex_chunk_start + 5].case_number if x.ex_chunk_end > x.ex_chunk_start + 5 else "" }
+    - "ex_record_6": ${ include_ex[x.ex_chunk_start + 6].case_number if x.ex_chunk_end > x.ex_chunk_start + 6 else "" }
+    - "ex_record_7": ${ include_ex[x.ex_chunk_start + 7].case_number if x.ex_chunk_end > x.ex_chunk_start + 7 else "" }
+    - "ex_record_8": ${ include_ex[x.ex_chunk_start + 8].case_number if x.ex_chunk_end > x.ex_chunk_start + 8 else "" }
+    - "ex_record_9": ${ include_ex[x.ex_chunk_start + 9].case_number if x.ex_chunk_end > x.ex_chunk_start + 9 else "" }
+    - "ex_record_10": ${ include_ex[x.ex_chunk_start + 10].case_number if x.ex_chunk_end > x.ex_chunk_start + 10 else "" }
+    - "ex_record_11": ${ include_ex[x.ex_chunk_start + 11].case_number if x.ex_chunk_end > x.ex_chunk_start + 11 else "" }
+    - "ex_record_12": ${ include_ex[x.ex_chunk_start + 12].case_number if x.ex_chunk_end > x.ex_chunk_start + 12 else "" }
+    - "ex_record_13": ${ include_ex[x.ex_chunk_start + 13].case_number if x.ex_chunk_end > x.ex_chunk_start + 13 else "" }
+    - "ex_record_14": ${ include_ex[x.ex_chunk_start + 14].case_number if x.ex_chunk_end > x.ex_chunk_start + 14 else "" }
+    - "ex_record_15": ${ include_ex[x.ex_chunk_start + 15].case_number if x.ex_chunk_end > x.ex_chunk_start + 15 else "" }
+    - "ex_record_16": ${ include_ex[x.ex_chunk_start + 16].case_number if x.ex_chunk_end > x.ex_chunk_start + 16 else "" }
+    - "ex_record_17": ${ include_ex[x.ex_chunk_start + 17].case_number if x.ex_chunk_end > x.ex_chunk_start + 17 else "" }
+    - "ex_record_18": ${ include_ex[x.ex_chunk_start + 18].case_number if x.ex_chunk_end > x.ex_chunk_start + 18 else "" }
+    - "ex_record_19": ${ include_ex[x.ex_chunk_start + 19].case_number if x.ex_chunk_end > x.ex_chunk_start + 19 else "" }
+    - "ex_record_20": ${ include_ex[x.ex_chunk_start + 20].case_number if x.ex_chunk_end > x.ex_chunk_start + 20 else "" }
+    - "ex_record_21": ${ include_ex[x.ex_chunk_start + 21].case_number if x.ex_chunk_end > x.ex_chunk_start + 21 else "" }
+    - "ex_record_22": ${ include_ex[x.ex_chunk_start + 22].case_number if x.ex_chunk_end > x.ex_chunk_start + 22 else "" }
+    - "ex_record_23": ${ include_ex[x.ex_chunk_start + 23].case_number if x.ex_chunk_end > x.ex_chunk_start + 23 else "" }
+    - "ex_record_24": ${ include_ex[x.ex_chunk_start + 24].case_number if x.ex_chunk_end > x.ex_chunk_start + 24 else "" }
+    - "ex_record_25": ${ include_ex[x.ex_chunk_start + 25].case_number if x.ex_chunk_end > x.ex_chunk_start + 25 else "" }
+    - "ex_record_26": ${ include_ex[x.ex_chunk_start + 26].case_number if x.ex_chunk_end > x.ex_chunk_start + 26 else "" }
+    - "ex_record_27": ${ include_ex[x.ex_chunk_start + 27].case_number if x.ex_chunk_end > x.ex_chunk_start + 27 else "" }
+    - "ex_additional_cb": ${ x.ex_chunk_end > x.ex_chunk_start + 28 }
+
+    - "se_record_0": ${ include_se[x.se_chunk_start].case_number if x.se_chunk_end > x.se_chunk_start else "" }
+    - "se_record_1": ${ include_se[x.se_chunk_start + 1].case_number if x.se_chunk_end > x.se_chunk_start + 1 else "" }
+    - "se_record_2": ${ include_se[x.se_chunk_start + 2].case_number if x.se_chunk_end > x.se_chunk_start + 2 else "" }
+    - "se_record_3": ${ include_se[x.se_chunk_start + 3].case_number if x.se_chunk_end > x.se_chunk_start + 3 else "" }
+    - "se_record_4": ${ include_se[x.se_chunk_start + 4].case_number if x.se_chunk_end > x.se_chunk_start + 4 else "" }
+    - "se_record_5": ${ include_se[x.se_chunk_start + 5].case_number if x.se_chunk_end > x.se_chunk_start + 5 else "" }
+    - "se_record_6": ${ include_se[x.se_chunk_start + 6].case_number if x.se_chunk_end > x.se_chunk_start + 6 else "" }
+    - "se_record_7": ${ include_se[x.se_chunk_start + 7].case_number if x.se_chunk_end > x.se_chunk_start + 7 else "" }
+    - "se_record_8": ${ include_se[x.se_chunk_start + 8].case_number if x.se_chunk_end > x.se_chunk_start + 8 else "" }
+    - "se_record_9": ${ include_se[x.se_chunk_start + 9].case_number if x.se_chunk_end > x.se_chunk_start + 9 else "" }
+    - "se_record_10": ${ include_se[x.se_chunk_start + 10].case_number if x.se_chunk_end > x.se_chunk_start + 10 else "" }
+    - "se_record_11": ${ include_se[x.se_chunk_start + 11].case_number if x.se_chunk_end > x.se_chunk_start + 11 else "" }
+    - "se_record_12": ${ include_se[x.se_chunk_start + 12].case_number if x.se_chunk_end > x.se_chunk_start + 12 else "" }
+    - "se_record_13": ${ include_se[x.se_chunk_start + 13].case_number if x.se_chunk_end > x.se_chunk_start + 13 else "" }
+    - "se_record_14": ${ include_se[x.se_chunk_start + 14].case_number if x.se_chunk_end > x.se_chunk_start + 14 else "" }
+    - "se_record_15": ${ include_se[x.se_chunk_start + 15].case_number if x.se_chunk_end > x.se_chunk_start + 15 else "" }
+    - "se_record_16": ${ include_se[x.se_chunk_start + 16].case_number if x.se_chunk_end > x.se_chunk_start + 16 else "" }
+    - "se_record_17": ${ include_se[x.se_chunk_start + 17].case_number if x.se_chunk_end > x.se_chunk_start + 17 else "" }
+    - "se_record_18": ${ include_se[x.se_chunk_start + 18].case_number if x.se_chunk_end > x.se_chunk_start + 18 else "" }
+    - "se_record_19": ${ include_se[x.se_chunk_start + 19].case_number if x.se_chunk_end > x.se_chunk_start + 19 else "" }
+    - "se_record_20": ${ include_se[x.se_chunk_start + 20].case_number if x.se_chunk_end > x.se_chunk_start + 20 else "" }
+    - "se_record_21": ${ include_se[x.se_chunk_start + 21].case_number if x.se_chunk_end > x.se_chunk_start + 21 else "" }
+    - "se_record_22": ${ include_se[x.se_chunk_start + 22].case_number if x.se_chunk_end > x.se_chunk_start + 22 else "" }
+    - "se_record_23": ${ include_se[x.se_chunk_start + 23].case_number if x.se_chunk_end > x.se_chunk_start + 23 else "" }
+    - "se_record_24": ${ include_se[x.se_chunk_start + 24].case_number if x.se_chunk_end > x.se_chunk_start + 24 else "" }
+    - "se_record_25": ${ include_se[x.se_chunk_start + 25].case_number if x.se_chunk_end > x.se_chunk_start + 25 else "" }
+    - "se_record_26": ${ include_se[x.se_chunk_start + 26].case_number if x.se_chunk_end > x.se_chunk_start + 26 else "" }
+    - "se_record_27": ${ include_se[x.se_chunk_start + 27].case_number if x.se_chunk_end > x.se_chunk_start + 27 else "" }
+    - "se_additional_cb": ${ x.se_chunk_end > x.se_chunk_start + 28 }
+
+
 ---
 attachment:
   variable name: order_denying_request[i]
@@ -2068,7 +2096,17 @@ review:
       **Records:**
 
       % for my_var in records:
-        * Arrest date: ${ my_var.arrest_date }
+      % if defined("my_var.include"):
+      % if my_var.include == "expunge":
+        1. Arrest date: ${ my_var.arrest_date }, request to **expunge**
+      % elif my_var.include == "seal":
+        1. Arrest date: ${ my_var.arrest_date }, request to **seal**
+      % else:
+        1. Arrest date: ${ my_var.arrest_date }, not included in request
+      % endif
+      % else:
+        1. Arrest date: ${ my_var.arrest_date }
+      % endif
       % endfor
   - Edit: ed_program_complete
     button: |
@@ -2152,7 +2190,17 @@ review:
       **Records:**
 
       % for my_var in records:
-        * Arrest date: ${ my_var.arrest_date }
+      % if defined("my_var.include"):
+      % if my_var.include == "expunge":
+        1. Arrest date: ${ my_var.arrest_date }, request to **expunge**
+      % elif my_var.include == "seal":
+        1. Arrest date: ${ my_var.arrest_date }, request to **seal**
+      % else:
+        1. Arrest date: ${ my_var.arrest_date }, not included in request
+      % endif
+      % else:
+        1. Arrest date: ${ my_var.arrest_date }
+      % endif
       % endfor
   - Edit: ed_program_complete
     button: |
