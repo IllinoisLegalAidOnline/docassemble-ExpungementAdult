@@ -31,7 +31,7 @@ code: |
 ---
 sections:
   - section_intro: Start
-  - section_eligibility: Eligibility
+  - section_records: Your records
   - section_user: About you
   - section_download: Download
 ---
@@ -49,7 +49,7 @@ code: |
   whats_next
 
   set_progress(25)  
-  nav.set_section('section_eligibility')
+  nav.set_section('section_records')
   filing_county
   build_expungement_outcomes()
   build_sealing_outcomes()
@@ -491,7 +491,7 @@ id: supervision or conviction unsealable
 question: |
   Did the ${ records[i].arrest_date } arrest result in a supervision or conviction for any of these offenses? 
 subquestion: |
-  Convictions and supervisions for these misdemeanors and felonies are not elitible for sealing.
+  Convictions and supervisions for these misdemeanors and felonies are not eligible for sealing.
   
   **Driving Offenses**
   
@@ -1386,7 +1386,6 @@ content: |
 objects:
   - instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", has_addendum=False)
   - request: ALDocument.using(title="Request to Expunge or Seal", filename="request.pdf", has_addendum=False)
-  - order: ALDocument.using(title="Order to Expunge or Seal (draft)", filename="order.pdf", has_addendum=False)
   - order_denying_request: ALDocument.using(title="Order Denying Request (draft)", filename="order_denying_request.pdf", has_addendum=False)
 
 ---
@@ -1529,7 +1528,7 @@ code: |
 
 ---
 objects:
-  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, request_bundle, case_list_bundle, order, order_denying_request], filename="expungement_forms.pdf", title="All forms")
+  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, request_bundle, case_list_bundle, order_bundle, order_denying_request], filename="expungement_forms.pdf", title="All forms")
   #- al_court_bundle: ALDocumentBundle.using(elements=[request_bundle, order_denying_request], filename="expungement_forms.pdf", title="All forms")
 ---
 objects:
@@ -1947,7 +1946,7 @@ attachment:
     - "record_67": ${ include_all[x.chunk_start + 67].case_number if x.chunk_end > x.chunk_start + 67 else "" }
     - "record_68": ${ include_all[x.chunk_start + 68].case_number if x.chunk_end > x.chunk_starting + 68 else "" }
     - "record_69": ${ include_all[x.chunk_start + 69].case_number if x.chunk_end > x.chunk_start + 69 else "" }
-    - "additional_case_list_cb": ${ "" }
+    - "additional_case_list_cb": ${ all_count > x.chunk_start + 70 }
 
 ---
 generic object: DAObject
@@ -2010,7 +2009,7 @@ attachment:
     - "ex_record_25": ${ include_ex[x.ex_chunk_start + 25].case_number if x.ex_chunk_end > x.ex_chunk_start + 25 else "" }
     - "ex_record_26": ${ include_ex[x.ex_chunk_start + 26].case_number if x.ex_chunk_end > x.ex_chunk_start + 26 else "" }
     - "ex_record_27": ${ include_ex[x.ex_chunk_start + 27].case_number if x.ex_chunk_end > x.ex_chunk_start + 27 else "" }
-    - "ex_additional_cb": ${ x.ex_chunk_end > x.ex_chunk_start + 28 }
+    - "ex_additional_cb": ${ ex_count > x.ex_chunk_start + 28 }
 
     - "se_record_0": ${ include_se[x.se_chunk_start].case_number if x.se_chunk_end > x.se_chunk_start else "" }
     - "se_record_1": ${ include_se[x.se_chunk_start + 1].case_number if x.se_chunk_end > x.se_chunk_start + 1 else "" }
@@ -2040,7 +2039,7 @@ attachment:
     - "se_record_25": ${ include_se[x.se_chunk_start + 25].case_number if x.se_chunk_end > x.se_chunk_start + 25 else "" }
     - "se_record_26": ${ include_se[x.se_chunk_start + 26].case_number if x.se_chunk_end > x.se_chunk_start + 26 else "" }
     - "se_record_27": ${ include_se[x.se_chunk_start + 27].case_number if x.se_chunk_end > x.se_chunk_start + 27 else "" }
-    - "se_additional_cb": ${ x.se_chunk_end > x.se_chunk_start + 28 }
+    - "se_additional_cb": ${ se_count > x.se_chunk_start + 28 }
 
 
 ---
@@ -2086,7 +2085,7 @@ subquestion: |
   Edit your answers below.
 review: 
   - note: |
-      <h4>Eligibility</h4>
+      <h4>Your records</h4>
   - Edit: filing_county
     button: |
       **County where you want to expunge or seal records:**
@@ -2173,11 +2172,11 @@ review:
       **Do you want to add your e-signature to your forms?**
       ${ word(yesno(e_signature)) }
 ---
-id: eligibility review screen
-section: Eligibility
-event: section_eligibility
+id: records review screen
+section: Your records
+event: section_records
 question: |
-  Eligibility
+  Your records
 subquestion: |
   Edit your answers below.
 review:
@@ -2187,7 +2186,7 @@ review:
       ${ filing_county }
   - Edit: records.revisit
     button: |
-      **Records:**
+      **Records: (Edit to review and change details)**
 
       % for my_var in records:
       % if defined("my_var.include"):
