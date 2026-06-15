@@ -76,6 +76,7 @@ code: |
   refresh_record_bundles
   forms_assembling
   snapshot_forms
+  #debug_screen
   get_docs_screen
 ---
 code: |
@@ -330,7 +331,7 @@ fields:
       - "I received a sentence of **supervision**.": supervision
       - "I was **convicted** and received a sentence of jail or prison time, a different kind of probation, conditional discharge, time considered served, or a fine.": conviction
   - note: |
-      **Note:** You can select **convicted** even if:
+      **Note:** Select **convicted** if you were convicted and:
       
       * The conviction was reversed or vacated,
       * You received a pardon from the Governor of the State of Illinois allowing expungement,
@@ -369,7 +370,7 @@ fields:
   - Have at least **5 years** passed since you successfully completed your Qualified Probation?: records[i].qp_complete_plus_5
     datatype: yesnoradio
     js show if: |
-      val("records[i].qp_type") != "second" && val("records[i].qp_complete")
+      val("records[i].qp_complete")
 ---
 id: first time weapons status
 question: |
@@ -1310,7 +1311,39 @@ code: |
   include_ex = DAList("include_ex", elements = temp_list_ex)
   include_se = DAList("include_se", elements = temp_list_se)
   include_all = DAList("include_all", elements = temp_list_ex + temp_list_se)
+
   build_case_lists = True
+
+---
+code: |
+  def ex_rwc_any():
+
+    if include_ex.number() > 0:
+      for record in include_ex:  
+        if record.rwc:
+          return True
+  
+    return False
+---
+code: |
+  def any_attr_value(record_list, attr, value=True):
+    for record in record_list:
+      try:
+        if getattr(record, attr, None) == value:
+          return True
+      except:
+        pass
+    return False
+---
+code: |
+  def any_record_matches(record_list, conditions):
+    for record in record_list:
+      try:
+        if all(getattr(record, attr, None) == value for attr, value in conditions):
+          return True
+      except:
+        pass
+    return False
 ---
 id: debug
 continue button field: case_lists_built_debug
@@ -1322,7 +1355,19 @@ subquestion: |
   Include Se: ${ include_se[0].case_number }
 
   Include All: ${ include_all[0].case_number }, ${ include_all[1].case_number }
-
+---
+id: debug
+continue button field: debug_screen
+question: debug
+subquestion: |
+  % for record in include_ex:
+  * after_arrest: ${ showifdef('record.after_arrest') }
+  * diversion_status: ${ showifdef('record.diversion_status') }
+  * matches: ${ any_record_matches([record], [('after_arrest', 'diversion'), ('diversion_status', 'complete')]) }
+  ---
+  % endfor
+  
+  Full match: ${ any_record_matches(include_ex, [('after_arrest', 'diversion'), ('diversion_status', 'complete')]) }
 ---
 id: forms assembling
 continue button field: forms_assembling
@@ -1341,9 +1386,10 @@ event: get_docs_screen
 question: |
   Download
 subquestion: |
-  
   Your forms are ready. View and download your forms below. Click **:edit: Make changes** to fix any mistakes.
 
+  DEBUG - diversion soon: ${any_attr_value(include_ex, 'after_arrest', 'diversion') and any_attr_value(include_ex, 'diversion_status', 'soon')}
+  
   Read the instructions for next steps on how to use the forms and follow up on your *Request*. 
   
   This program **does not file** your forms with the court. You will need to do this yourself. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
@@ -1554,7 +1600,7 @@ attachment:
   fields:
     - "filing_county": ${ filing_county }
     - "user_name": ${ users[0].name_full() }
-    - "other_names": ${ other_user_names }
+    - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_dob": ${ users[0].birthdate }
     - "user_race": |
         % if users[0].race == 'other':
@@ -1578,67 +1624,67 @@ attachment:
     - "expunge_no": ${ include_ex.number() == 0 }
     - "ex_arrest_or_case_number_0": ${ include_ex[0].case_number if include_ex.number() > 0 else "" }
     - "ex_arresting_agency_0": ${ include_ex[0].agency if include_ex.number() > 0 else "" }
-    - "ex_charge_0": ${ include_ex[0].charge if include_ex.number() > 0 else "" }
+    - "ex_charge_0": ${ include_ex[0].charge.replace("\n", " ").replace("\r", " ") if include_ex.number() > 0 else "" }
     - "ex_arrest_date_0": ${ format_date(include_ex[0].arrest_date, format='M/d/yyyy') if include_ex.number() > 0 else "" }
     - "ex_outcome_0": ${ include_ex[0].ex_outcome if include_ex.number() > 0 else "" }
     - "ex_arrest_or_case_number_1": ${ include_ex[1].case_number if include_ex.number() > 1 else "" }
     - "ex_arresting_agency_1": ${ include_ex[1].agency if include_ex.number() > 1 else "" }
-    - "ex_charge_1": ${ include_ex[1].charge if include_ex.number() > 1 else "" }
+    - "ex_charge_1": ${ include_ex[1].charge.replace("\n", " ").replace("\r", " ") if include_ex.number() > 1 else "" }
     - "ex_arrest_date_1": ${ format_date(include_ex[1].arrest_date, format='M/d/yyyy') if include_ex.number() > 1 else "" }
     - "ex_outcome_1": ${ include_ex[1].ex_outcome if include_ex.number() > 1 else "" }
     - "ex_arrest_or_case_number_2": ${ include_ex[2].case_number if include_ex.number() > 2 else "" }
     - "ex_arresting_agency_2": ${ include_ex[2].agency if include_ex.number() > 2 else "" }
-    - "ex_charge_2": ${ include_ex[2].charge if include_ex.number() > 2 else "" }
+    - "ex_charge_2": ${ include_ex[2].charge.replace("\n", " ").replace("\r", " ") if include_ex.number() > 2 else "" }
     - "ex_arrest_date_2": ${ format_date(include_ex[2].arrest_date, format='M/d/yyyy') if include_ex.number() > 2 else "" }      
     - "ex_outcome_2": ${ include_ex[2].ex_outcome if include_ex.number() > 2 else "" }
     - "ex_arrest_or_case_number_3": ${ include_ex[3].case_number if include_ex.number() > 3 else "" }
     - "ex_arresting_agency_3": ${ include_ex[3].agency if include_ex.number() > 3 else "" }
-    - "ex_charge_3": ${ include_ex[3].charge if include_ex.number() > 3 else "" }
+    - "ex_charge_3": ${ include_ex[3].charge.replace("\n", " ").replace("\r", " ") if include_ex.number() > 3 else "" }
     - "ex_arrest_date_3": ${ format_date(include_ex[3].arrest_date, format='M/d/yyyy') if include_ex.number() > 3 else "" }
     - "ex_outcome_3": ${ include_ex[3].ex_outcome if include_ex.number() > 3 else "" }
     - "ex_arrest_or_case_number_4": ${ include_ex[4].case_number if include_ex.number() > 4 else "" }
     - "ex_arresting_agency_4": ${ include_ex[4].agency if include_ex.number() > 4 else "" }
-    - "ex_charge_4": ${ include_ex[4].charge if include_ex.number() > 4 else "" }
+    - "ex_charge_4": ${ include_ex[4].charge.replace("\n", " ").replace("\r", " ") if include_ex.number() > 4 else "" }
     - "ex_arrest_date_4": ${ format_date(include_ex[4].arrest_date, format='M/d/yyyy') if include_ex.number() > 4 else "" }
     - "ex_outcome_4": ${ include_ex[4].ex_outcome if include_ex.number() > 4 else "" }
     - "ex_arrest_or_case_number_5": ${ include_ex[5].case_number if include_ex.number() > 5 else "" }
     - "ex_arresting_agency_5": ${ include_ex[5].agency if include_ex.number() > 5 else "" }
-    - "ex_charge_5": ${ include_ex[5].charge if include_ex.number() > 5 else "" }
+    - "ex_charge_5": ${ include_ex[5].charge.replace("\n", " ").replace("r", " ") if include_ex.number() > 5 else "" }
     - "ex_arrest_date_5": ${ format_date(include_ex[5].arrest_date, format='M/d/yyyy') if include_ex.number() > 5 else "" }
     - "ex_outcome_5": ${ include_ex[5].ex_outcome if include_ex.number() > 5 else "" }
     - "ex_arrest_or_case_number_6": ${ include_ex[6].case_number if include_ex.number() > 6 else "" }
     - "ex_arresting_agency_6": ${ include_ex[6].agency if include_ex.number() > 6 else "" }
-    - "ex_charge_6": ${ include_ex[6].charge if include_ex.number() > 6 else "" }
+    - "ex_charge_6": ${ include_ex[6].charge.replace("\n", " ").replace("\r", " ") if include_ex.number() > 6 else "" }
     - "ex_arrest_date_6": ${ format_date(include_ex[6].arrest_date, format='M/d/yyyy') if include_ex.number() > 6 else "" }
     - "ex_outcome_6": ${ include_ex[6].ex_outcome if include_ex.number() > 6 else "" }
     - "ex_arrest_or_case_number_7": ${ include_ex[7].case_number if include_ex.number() > 7 else "" }
     - "ex_arresting_agency_7": ${ include_ex[7].agency if include_ex.number() > 7 else "" }
-    - "ex_charge_7": ${ include_ex[7].charge if include_ex.number() > 7 else "" }
+    - "ex_charge_7": ${ include_ex[7].charge.replace("\n", " ").replace("\r", " ") if include_ex.number() > 7 else "" }
     - "ex_arrest_date_7": ${ format_date(include_ex[7].arrest_date, format='M/d/yyyy') if include_ex.number() > 7 else "" }
     - "ex_outcome_7": ${ include_ex[7].ex_outcome if include_ex.number() > 7 else "" }
     - "ex_arrest_or_case_number_8": ${ include_ex[8].case_number if include_ex.number() > 8 else "" }
     - "ex_arresting_agency_8": ${ include_ex[8].agency if include_ex.number() > 8 else "" }
-    - "ex_charge_8": ${ include_ex[8].charge if include_ex.number() > 8 else "" }
+    - "ex_charge_8": ${ include_ex[8].charge.replace("\n", " ").replace("\r", " ") if include_ex.number() > 8 else "" }
     - "ex_arrest_date_8": ${ format_date(include_ex[8].arrest_date, format='M/d/yyyy') if include_ex.number() > 8 else "" }
     - "ex_outcome_8": ${ include_ex[8].ex_outcome if include_ex.number() > 8 else "" }
     - "ex_arrest_or_case_number_9": ${ include_ex[9].case_number if include_ex.number() > 9 else "" }
     - "ex_arresting_agency_9": ${ include_ex[9].agency if include_ex.number() > 9 else "" }
-    - "ex_charge_9": ${ include_ex[9].charge if include_ex.number() > 9 else "" }
+    - "ex_charge_9": ${ include_ex[9].charge.replace("\n", " ").replace("\r", " ") if include_ex.number() > 9 else "" }
     - "ex_arrest_date_9": ${ format_date(include_ex[9].arrest_date, format='M/d/yyyy') if include_ex.number() > 9 else "" }
     - "ex_outcome_9": ${ include_ex[9].ex_outcome if include_ex.number() > 9 else "" }
     - "ex_additional_cb": ${ include_ex.number() > 10 }
-    - "ex_reverse": ${ "" }
-    - "ex_pardon": ${ "" }
-    - "ex_cert": ${ "" }
-    - "ex_innocent": ${ "" }
-    - "ex_rwc": ${ "" }
-    - "ex_traffic_rwc": ${ "" }
+    - "ex_reverse": ${ True if any_attr_value(include_ex, 'reversed') else '' }
+    - "ex_pardon": ${ True if any_attr_value(include_ex, 'pardon') else '' }
+    - "ex_cert": ${ True if any_attr_value(include_ex, 'certificate_ex') else '' }
+    - "ex_innocent": ${ True if any_attr_value(include_ex, 'factually_innocent') else '' }
+    - "ex_rwc": ${ True if any_attr_value(include_ex, 'rwc') else '' }
+    - "ex_traffic_rwc": ${ True if any_attr_value(include_ex, 'traffic') else '' }
     - "ex_diversion_cb": ${ "" }
-    - "ex_diversion_complete_now": ${ "" }
-    - "ex_diversion_complete_61": ${ "" }
-    - "ex_dismissed": ${ "" }
-    - "ex_qp_complete_5": ${ "" }
-    - "ex_supervision_cb": ${ "" }
+    - "ex_diversion_complete_now": ${ True if any_attr_value(include_ex, 'after_arrest', 'diversion') and any_attr_value(include_ex, 'diversion_status', 'complete') else '' }
+    - "ex_diversion_complete_61": ${ True if any_attr_value(include_ex, 'after_arrest', 'diversion') and any_attr_value(include_ex, 'diversion_status', 'soon') else '' }
+    - "ex_dismissed": ${ True if any_attr_value(include_ex, 'after_arrest', 'dismissed') else '' }
+    - "ex_qp_complete_5": ${ True if any_attr_value(include_ex, 'after_arrest', 'qualified_probation') and any_attr_value(include_ex, 'qp_complete') and any_attr_value(include_ex, 'qp_complete_plus_5') else '' }
+    - "ex_supervision_cb": ${ ""}
     - "ex_supervision_complete_5": ${ "" }
     - "ex_supervision_complete_2": ${ "" }
     - "ex_not_supervision_exclusion": ${ "" }
@@ -1648,52 +1694,52 @@ attachment:
     - "seal_no": ${ include_se.number() == 0 }
     - "se_arrest_or_case_number_0": ${ include_se[0].case_number if include_se.number() > 0 else "" }
     - "se_arresting_agency_0": ${ include_se[0].agency if include_se.number() > 0 else "" }
-    - "se_charge_0": ${ include_se[0].charge if include_se.number() > 0 else "" }
+    - "se_charge_0": ${ include_se[0].charge.replace("\n", " ").replace("\r", " ") if include_se.number() > 0 else "" }
     - "se_arrest_date_0": ${ format_date(include_se[0].arrest_date, format='M/d/yyyy') if include_se.number() > 0 else "" }
     - "se_outcome_0": ${ include_se[0].se_outcome if include_se.number() > 0 else "" }
     - "se_arrest_or_case_number_1": ${ include_se[1].case_number if include_se.number() > 1 else "" }
     - "se_arresting_agency_1": ${ include_se[1].agency if include_se.number() > 1 else "" }
-    - "se_charge_1": ${ include_se[1].charge if include_se.number() > 1 else "" }
+    - "se_charge_1": ${ include_se[1].charge.replace("\n", " ").replace("\r", " ") if include_se.number() > 1 else "" }
     - "se_arrest_date_1": ${ format_date(include_se[1].arrest_date, format='M/d/yyyy') if include_se.number() > 1 else "" }
     - "se_outcome_1": ${ include_se[1].se_outcome if include_se.number() > 1 else "" }
     - "se_arrest_or_case_number_2": ${ include_se[2].case_number if include_se.number() > 2 else "" }
     - "se_arresting_agency_2": ${ include_se[2].agency if include_se.number() > 2 else "" }
-    - "se_charge_2": ${ include_se[2].charge if include_se.number() > 2 else "" }
+    - "se_charge_2": ${ include_se[2].charge.replace("\n", " ").replace("\r", " ") if include_se.number() > 2 else "" }
     - "se_arrest_date_2": ${ format_date(include_se[2].arrest_date, format='M/d/yyyy') if include_se.number() > 2 else "" }
     - "se_outcome_2": ${ include_se[2].se_outcome if include_se.number() > 2 else "" }
     - "se_arrest_or_case_number_3": ${ include_se[3].case_number if include_se.number() > 3 else "" }
     - "se_arresting_agency_3": ${ include_se[3].agency if include_se.number() > 3 else "" }
-    - "se_charge_3": ${ include_se[3].charge if include_se.number() > 3 else "" }
+    - "se_charge_3": ${ include_se[3].charge.replace("\n", " ").replace("\r", " ") if include_se.number() > 3 else "" }
     - "se_arrest_date_3": ${ format_date(include_se[3].arrest_date, format='M/d/yyyy') if include_se.number() > 3 else "" }
     - "se_outcome_3": ${ include_se[3].se_outcome if include_se.number() > 3 else "" }
     - "se_arrest_or_case_number_4": ${ include_se[4].case_number if include_se.number() > 4 else "" }
     - "se_arresting_agency_4": ${ include_se[4].agency if include_se.number() > 4 else "" }
-    - "se_charge_4": ${ include_se[4].charge if include_se.number() > 4 else "" }
+    - "se_charge_4": ${ include_se[4].charge.replace("\n", " ").replace("\r", " ") if include_se.number() > 4 else "" }
     - "se_arrest_date_4": ${ format_date(include_se[4].arrest_date, format='M/d/yyyy') if include_se.number() > 4 else "" }
     - "se_outcome_4": ${ include_se[4].se_outcome if include_se.number() > 4 else "" }
     - "se_arrest_or_case_number_5": ${ include_se[5].case_number if include_se.number() > 5 else "" }
     - "se_arresting_agency_5": ${ include_se[5].agency if include_se.number() > 5 else "" }
-    - "se_charge_5": ${ include_se[5].charge if include_se.number() > 5 else "" }
+    - "se_charge_5": ${ include_se[5].charge.replace("\n", " ").replace("\r", " ") if include_se.number() > 5 else "" }
     - "se_arrest_date_5": ${ format_date(include_se[5].arrest_date, format='M/d/yyyy') if include_se.number() > 5 else "" }
     - "se_outcome_5": ${ include_se[5].se_outcome if include_se.number() > 5 else "" }
     - "se_arrest_or_case_number_6": ${ include_se[6].case_number if include_se.number() > 6 else "" }
     - "se_arresting_agency_6": ${ include_se[6].agency if include_se.number() > 6 else "" }
-    - "se_charge_6": ${ include_se[6].charge if include_se.number() > 6 else "" }
+    - "se_charge_6": ${ include_se[6].charge.replace("\n", " ").replace("\r", " ") if include_se.number() > 6 else "" }
     - "se_arrest_date_6": ${ format_date(include_se[6].arrest_date, format='M/d/yyyy') if include_se.number() > 6 else "" }
     - "se_outcome_6": ${ include_se[6].se_outcome if include_se.number() > 6 else "" }
     - "se_arrest_or_case_number_7": ${ include_se[7].case_number if include_se.number() > 7 else "" }
     - "se_arresting_agency_7": ${ include_se[7].agency if include_se.number() > 7 else "" }
-    - "se_charge_7": ${ include_se[7].charge if include_se.number() > 7 else "" }
+    - "se_charge_7": ${ include_se[7].charge.replace("\n", " ").replace("\r", " ") if include_se.number() > 7 else "" }
     - "se_arrest_date_7": ${ format_date(include_se[7].arrest_date, format='M/d/yyyy') if include_se.number() > 7 else "" }
     - "se_outcome_7": ${ include_se[7].se_outcome if include_se.number() > 7 else "" }
     - "se_arrest_or_case_number_8": ${ include_se[8].case_number if include_se.number() > 8 else "" }
     - "se_arresting_agency_8": ${ include_se[8].agency if include_se.number() > 8 else "" }
-    - "se_charge_8": ${ include_se[8].charge if include_se.number() > 8 else "" }
+    - "se_charge_8": ${ include_se[8].charge.replace("\n", " ").replace("\r", " ") if include_se.number() > 8 else "" }
     - "se_arrest_date_8": ${ format_date(include_se[8].arrest_date, format='M/d/yyyy') if include_se.number() > 8 else "" }
     - "se_outcome_8": ${ include_se[8].se_outcome if include_se.number() > 8 else "" }
     - "se_arrest_or_case_number_9": ${ include_se[9].case_number if include_se.number() > 9 else "" }
     - "se_arresting_agency_9": ${ include_se[9].agency if include_se.number() > 9 else "" }
-    - "se_charge_9": ${ include_se[9].charge if include_se.number() > 9 else "" }
+    - "se_charge_9": ${ include_se[9].charge.replace("\n", " ").replace("\r", " ") if include_se.number() > 9 else "" }
     - "se_arrest_date_9": ${ format_date(include_se[9].arrest_date, format='M/d/yyyy') if include_se.number() > 9 else "" }
     - "se_outcome_9": ${ include_se[9].se_outcome if include_se.number() > 9 else "" }
 
@@ -1729,7 +1775,7 @@ attachment:
   fields:
     - "filing_county": ${ filing_county }
     - "user_name": ${ users[0].name_full() }
-    - "other_names": ${ other_user_names }
+    - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_dob": ${ users[0].birthdate }
     - "user_race": |
         % if users[0].race == 'other':
@@ -1749,37 +1795,37 @@ attachment:
     - "attorney_number": ${""}
     - "ex_arrest_or_case_number_1": ${ include_ex[x.chunk_start].case_number if x.chunk_end > x.chunk_start else "" }
     - "ex_arresting_agency_1": ${ include_ex[x.chunk_start].agency if x.chunk_end > x.chunk_start else "" }
-    - "ex_charge_1": ${ include_ex[x.chunk_start].charge if x.chunk_end > x.chunk_start else "" }
+    - "ex_charge_1": ${ include_ex[x.chunk_start].charge.replace("\n", " ").replace("\r", " ") if x.chunk_end > x.chunk_start else "" }
     - "ex_arrest_date_1": ${ format_date(include_ex[x.chunk_start].arrest_date, format='M/d/yyyy') if x.chunk_end > x.chunk_start else "" }
     - "ex_outcome_1": ${ include_ex[x.chunk_start].ex_outcome if x.chunk_end > x.chunk_start else "" }
     - "ex_arrest_or_case_number_2": ${ include_ex[x.chunk_start + 1].case_number if x.chunk_end > x.chunk_start + 1 else "" }
     - "ex_arresting_agency_2": ${ include_ex[x.chunk_start + 1].agency if x.chunk_end > x.chunk_start + 1 else "" }
-    - "ex_charge_2": ${ include_ex[x.chunk_start + 1].charge if x.chunk_end > x.chunk_start + 1 else "" }
+    - "ex_charge_2": ${ include_ex[x.chunk_start + 1].charge.replace("\n", " ").replace("\r", " ") if x.chunk_end > x.chunk_start + 1 else "" }
     - "ex_arrest_date_2": ${ format_date(include_ex[x.chunk_start + 1].arrest_date, format='M/d/yyyy') if x.chunk_end > x.chunk_start + 1 else "" }
     - "ex_outcome_2": ${ include_ex[x.chunk_start + 1].ex_outcome if x.chunk_end > x.chunk_start + 1 else "" }
     - "ex_arrest_or_case_number_3": ${ include_ex[x.chunk_start + 2].case_number if x.chunk_end > x.chunk_start + 2 else "" }
     - "ex_arresting_agency_3": ${ include_ex[x.chunk_start + 2].agency if x.chunk_end > x.chunk_start + 2 else "" }
-    - "ex_charge_3": ${ include_ex[x.chunk_start + 2].charge if x.chunk_end > x.chunk_start + 2 else "" }
+    - "ex_charge_3": ${ include_ex[x.chunk_start + 2].charge.replace("\n", " ").replace("\r", " ") if x.chunk_end > x.chunk_start + 2 else "" }
     - "ex_arrest_date_3": ${ format_date(include_ex[x.chunk_start + 2].arrest_date, format='M/d/yyyy') if x.chunk_end > x.chunk_start + 2 else "" }
     - "ex_outcome_3": ${ include_ex[x.chunk_start + 2].ex_outcome if x.chunk_end > x.chunk_start + 2 else "" }
     - "ex_arrest_or_case_number_4": ${ include_ex[x.chunk_start + 3].case_number if x.chunk_end > x.chunk_start + 3 else "" }
     - "ex_arresting_agency_4": ${ include_ex[x.chunk_start + 3].agency if x.chunk_end > x.chunk_start + 3 else "" }
-    - "ex_charge_4": ${ include_ex[x.chunk_start + 3].charge if x.chunk_end > x.chunk_start + 3 else "" }
+    - "ex_charge_4": ${ include_ex[x.chunk_start + 3].charge.replace("\n", " ").replace("\r", " ") if x.chunk_end > x.chunk_start + 3 else "" }
     - "ex_arrest_date_4": ${ format_date(include_ex[x.chunk_start + 3].arrest_date, format='M/d/yyyy') if x.chunk_end > x.chunk_start + 3 else "" }
     - "ex_outcome_4": ${ include_ex[x.chunk_start + 3].ex_outcome if x.chunk_end > x.chunk_start + 3 else "" }
     - "ex_arrest_or_case_number_5": ${ include_ex[x.chunk_start + 4].case_number if x.chunk_end > x.chunk_start + 4 else "" }
     - "ex_arresting_agency_5": ${ include_ex[x.chunk_start + 4].agency if x.chunk_end > x.chunk_start + 4 else "" }
-    - "ex_charge_5": ${ include_ex[x.chunk_start + 4].charge if x.chunk_end > x.chunk_start + 4 else "" }
+    - "ex_charge_5": ${ include_ex[x.chunk_start + 4].charge.replace("\n", " ").replace("\r", " ") if x.chunk_end > x.chunk_start + 4 else "" }
     - "ex_arrest_date_5": ${ format_date(include_ex[x.chunk_start + 4].arrest_date, format='M/d/yyyy') if x.chunk_end > x.chunk_start + 4 else "" }
     - "ex_outcome_5": ${ include_ex[x.chunk_start + 4].ex_outcome if x.chunk_end > x.chunk_start + 4 else "" }
     - "ex_arrest_or_case_number_6": ${ include_ex[x.chunk_start + 5].case_number if x.chunk_end > x.chunk_start + 5 else "" }
     - "ex_arresting_agency_6": ${ include_ex[x.chunk_start + 5].agency if x.chunk_end > x.chunk_start + 5 else "" }
-    - "ex_charge_6": ${ include_ex[x.chunk_start + 5].charge if x.chunk_end > x.chunk_start + 5 else "" }
+    - "ex_charge_6": ${ include_ex[x.chunk_start + 5].charge.replace("\n", " ").replace("\r", " ") if x.chunk_end > x.chunk_start + 5 else "" }
     - "ex_arrest_date_6": ${ format_date(include_ex[x.chunk_start + 5].arrest_date, format='M/d/yyyy') if x.chunk_end > x.chunk_start + 5 else "" }
     - "ex_outcome_6": ${ include_ex[x.chunk_start + 5].ex_outcome if x.chunk_end > x.chunk_start + 5 else "" }
     - "ex_arrest_or_case_number_7": ${ include_ex[x.chunk_start + 6].case_number if x.chunk_end > x.chunk_start + 6 else "" }
     - "ex_arresting_agency_7": ${ include_ex[x.chunk_start + 6].agency if x.chunk_end > x.chunk_start + 6 else "" }
-    - "ex_charge_7": ${ include_ex[x.chunk_start + 6].charge if x.chunk_end > x.chunk_start + 6 else "" }
+    - "ex_charge_7": ${ include_ex[x.chunk_start + 6].charge.replace("\n", " ").replace("\r", " ") if x.chunk_end > x.chunk_start + 6 else "" }
     - "ex_arrest_date_7": ${ format_date(include_ex[x.chunk_start + 6].arrest_date, format='M/d/yyyy') if x.chunk_end > x.chunk_start + 6 else "" }
     - "ex_outcome_7": ${ include_ex[x.chunk_start + 6].ex_outcome if x.chunk_end > x.chunk_start + 6 else "" }
 
@@ -1795,7 +1841,7 @@ attachment:
   fields:
     - "filing_county": ${ filing_county }
     - "user_name": ${ users[0].name_full() }
-    - "other_names": ${ other_user_names }
+    - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_dob": ${ users[0].birthdate }
     - "user_race": |
         % if users[0].race == 'other':
@@ -1815,37 +1861,37 @@ attachment:
     - "attorney_number": ${""}
     - "se_arrest_or_case_number_1": ${ include_se[x.chunk_start].case_number if x.chunk_end > x.chunk_start else "" }
     - "se_arresting_agency_1": ${ include_se[x.chunk_start].agency if x.chunk_end > x.chunk_start else "" }
-    - "se_charge_1": ${ include_se[x.chunk_start].charge if x.chunk_end > x.chunk_start else "" }
+    - "se_charge_1": ${ include_se[x.chunk_start].charge.replace("\n", " ").replace("\r", " ") if x.chunk_end > x.chunk_start else "" }
     - "se_arrest_date_1": ${ format_date(include_se[x.chunk_start].arrest_date, format='M/d/yyyy') if x.chunk_end > x.chunk_start else "" }
     - "se_outcome_1": ${ include_se[x.chunk_start].se_outcome if x.chunk_end > x.chunk_start else "" }
     - "se_arrest_or_case_number_2": ${ include_se[x.chunk_start + 1].case_number if x.chunk_end > x.chunk_start + 1 else "" }
     - "se_arresting_agency_2": ${ include_se[x.chunk_start + 1].agency if x.chunk_end > x.chunk_start + 1 else "" }
-    - "se_charge_2": ${ include_se[x.chunk_start + 1].charge if x.chunk_end > x.chunk_start + 1 else "" }
+    - "se_charge_2": ${ include_se[x.chunk_start + 1].charge.replace("\n", " ").replace("\r", " ") if x.chunk_end > x.chunk_start + 1 else "" }
     - "se_arrest_date_2": ${ format_date(include_se[x.chunk_start + 1].arrest_date, format='M/d/yyyy') if x.chunk_end > x.chunk_start + 1 else "" }
     - "se_outcome_2": ${ include_se[x.chunk_start + 1].se_outcome if x.chunk_end > x.chunk_start + 1 else "" }
     - "se_arrest_or_case_number_3": ${ include_se[x.chunk_start + 2].case_number if x.chunk_end > x.chunk_start + 2 else "" }
     - "se_arresting_agency_3": ${ include_se[x.chunk_start + 2].agency if x.chunk_end > x.chunk_start + 2 else "" }
-    - "se_charge_3": ${ include_se[x.chunk_start + 2].charge if x.chunk_end > x.chunk_start + 2 else "" }
+    - "se_charge_3": ${ include_se[x.chunk_start + 2].charge.replace("\n", " ").replace("\r", " ") if x.chunk_end > x.chunk_start + 2 else "" }
     - "se_arrest_date_3": ${ format_date(include_se[x.chunk_start + 2].arrest_date, format='M/d/yyyy') if x.chunk_end > x.chunk_start + 2 else "" }
     - "se_outcome_3": ${ include_se[x.chunk_start + 2].se_outcome if x.chunk_end > x.chunk_start + 2 else "" }
     - "se_arrest_or_case_number_4": ${ include_se[x.chunk_start + 3].case_number if x.chunk_end > x.chunk_start + 3 else "" }
     - "se_arresting_agency_4": ${ include_se[x.chunk_start + 3].agency if x.chunk_end > x.chunk_start + 3 else "" }
-    - "se_charge_4": ${ include_se[x.chunk_start + 3].charge if x.chunk_end > x.chunk_start + 3 else "" }
+    - "se_charge_4": ${ include_se[x.chunk_start + 3].charge.replace("\n", " ").replace("\r", " ") if x.chunk_end > x.chunk_start + 3 else "" }
     - "se_arrest_date_4": ${ format_date(include_se[x.chunk_start + 3].arrest_date, format='M/d/yyyy') if x.chunk_end > x.chunk_start + 3 else "" }
     - "se_outcome_4": ${ include_se[x.chunk_start + 3].se_outcome if x.chunk_end > x.chunk_start + 3 else "" }
     - "se_arrest_or_case_number_5": ${ include_se[x.chunk_start + 4].case_number if x.chunk_end > x.chunk_start + 4 else "" }
     - "se_arresting_agency_5": ${ include_se[x.chunk_start + 4].agency if x.chunk_end > x.chunk_start + 4 else "" }
-    - "se_charge_5": ${ include_se[x.chunk_start + 4].charge if x.chunk_end > x.chunk_start + 4 else "" }
+    - "se_charge_5": ${ include_se[x.chunk_start + 4].charge.replace("\n", " ").replace("\r", " ") if x.chunk_end > x.chunk_start + 4 else "" }
     - "se_arrest_date_5": ${ format_date(include_se[x.chunk_start + 4].arrest_date, format='M/d/yyyy') if x.chunk_end > x.chunk_start + 4 else "" }
     - "se_outcome_5": ${ include_se[x.chunk_start + 4].se_outcome if x.chunk_end > x.chunk_start + 4 else "" }
     - "se_arrest_or_case_number_6": ${ include_se[x.chunk_start + 5].case_number if x.chunk_end > x.chunk_start + 5 else "" }
     - "se_arresting_agency_6": ${ include_se[x.chunk_start + 5].agency if x.chunk_end > x.chunk_start + 5 else "" }
-    - "se_charge_6": ${ include_se[x.chunk_start + 5].charge if x.chunk_end > x.chunk_start + 5 else "" }
+    - "se_charge_6": ${ include_se[x.chunk_start + 5].charge.replace("\n", " ").replace("\r", " ") if x.chunk_end > x.chunk_start + 5 else "" }
     - "se_arrest_date_6": ${ format_date(include_se[x.chunk_start + 5].arrest_date, format='M/d/yyyy') if x.chunk_end > x.chunk_start + 5 else "" }
     - "se_outcome_6": ${ include_se[x.chunk_start + 5].se_outcome if x.chunk_end > x.chunk_start + 5 else "" }
     - "se_arrest_or_case_number_7": ${ include_se[x.chunk_start + 6].case_number if x.chunk_end > x.chunk_start + 6 else "" }
     - "se_arresting_agency_7": ${ include_se[x.chunk_start + 6].agency if x.chunk_end > x.chunk_start + 6 else "" }
-    - "se_charge_7": ${ include_se[x.chunk_start + 6].charge if x.chunk_end > x.chunk_start + 6 else "" }
+    - "se_charge_7": ${ include_se[x.chunk_start + 6].charge.replace("\n", " ").replace("\r", " ") if x.chunk_end > x.chunk_start + 6 else "" }
     - "se_arrest_date_7": ${ format_date(include_se[x.chunk_start + 6].arrest_date, format='M/d/yyyy') if x.chunk_end > x.chunk_start + 6 else "" }
     - "se_outcome_7": ${ include_se[x.chunk_start + 6].se_outcome if x.chunk_end > x.chunk_start + 6 else "" }
 
@@ -1861,7 +1907,7 @@ attachment:
   fields:
     - "filing_county": ${ filing_county }
     - "user_name": ${ users[0].name_full() }
-    - "other_names": ${ other_user_names }
+    - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_dob": ${ users[0].birthdate }
     - "user_race": |
         % if users[0].race == 'other':
@@ -1960,7 +2006,7 @@ attachment:
   fields:
     - "filing_county": ${ filing_county }
     - "user_name": ${ users[0].name_full() }
-    - "other_names": ${ other_user_names }
+    - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_dob": ${ users[0].birthdate }
     - "user_race": |
         % if users[0].race == 'other':
@@ -2053,7 +2099,7 @@ attachment:
   fields:
     - "filing_county": ${ filing_county }
     - "user_name": ${ users[0].name_full() }
-    - "other_names": ${ other_user_names }
+    - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_dob": ${ users[0].birthdate }
     - "user_race": |
         % if users[0].race == 'other':
