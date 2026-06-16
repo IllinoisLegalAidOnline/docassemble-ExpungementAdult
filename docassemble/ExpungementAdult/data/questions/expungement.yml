@@ -300,7 +300,7 @@ fields:
     datatype: yesnowide
   - "I received a Certificate of Eligibility for **Sealing** by the Prisoner Review Board.": records[i].certificate_se
     datatype: yesnowide
-  - "I was found by a court that I am factually innocent in the case.": records[i].factually_innocent
+  - "I was found by a court that I am factually innocent in the case.": records[i].innocent
     datatype: yesnowide
   - "None of these apply.": records[i].reversed_none
     datatype: yesnowide
@@ -333,10 +333,10 @@ fields:
   - note: |
       **Note:** Select **convicted** if you were convicted and:
       
-      * The conviction was reversed or vacated,
-      * You received a pardon from the Governor of the State of Illinois allowing expungement,
-      * You received a Certificate of Eligibility for Expungement or Sealing by the Prisoner Review Board, or
-      * You were found by a court that you are factually innocent in the case.
+      * The conviction was **reversed** or **vacated**,
+      * You received a **pardon** from the Governor of the State of Illinois allowing expungement,
+      * You received a **Certificate of Eligibility** for Expungement or Sealing by the Prisoner Review Board, or
+      * You were found by a court that you are **factually innocent** in the case.
 ---
 id: diversion status
 question: |
@@ -590,7 +590,7 @@ fields:
 code: |
   def any_special_ex( record ):
 
-    if record.reversed or record.pardon or record.certificate_ex or record.certificate_se or record.factually_innocent:
+    if record.reversed or record.pardon or record.certificate_ex or record.certificate_se or record.innocent:
       return True
     else:
       return False
@@ -607,7 +607,7 @@ code: |
         if records[i].after_arrest == "qualified_probation":
           records[i].qp_complete
         if records[i].after_arrest == "supervision":
-          if records[i].supervision_exclusion == "none":
+          if records[i].supervision_exclusion == "none" or (records[i].supervision_exclusion == "reckless" and not records[i].reckless_was_under_25):
             records[i].supervision_complete
         if records[i].after_arrest == "weapons":
           records[i].weapons_complete
@@ -667,7 +667,7 @@ code: |
   
     if record.after_arrest == "conviction":
       if not record.reversed_none:
-        if record.reversed or record.pardon or record.certificate_ex or record.certificate_se or record.factually_innocent:
+        if record.reversed or record.pardon or record.certificate_ex or record.certificate_se or record.innocent:
           if record.certificate_se or record.certificate_ex:
             if record.certificate_se:
               record.se_eligible = True
@@ -739,8 +739,9 @@ code: |
   
     if record.after_arrest == "qualified_probation":
       if record.qp_complete:
-        record.ex_eligible = True
-        record.ex_when = "5"
+        if record.qp_complete_plus_5:
+          record.ex_eligible = True
+          record.ex_when = "5 qp"
         record.se_eligible = True
         record.se_when = "2"
         if record.qp_type == "second":
@@ -791,7 +792,7 @@ code: |
         if record.supervision_needs_5:
           if record.supervision_complete_plus_5:
             record.ex_eligible = True
-            record.ex_when = "5"
+            record.ex_when = "5 sup"
             record.se_eligible = True
             record.se_when = "2"  
             return
@@ -802,7 +803,7 @@ code: |
         else:
           if record.supervision_complete_plus_2:
             record.ex_eligible = True
-            record.ex_when = "2"
+            record.ex_when = "2 sup"
             record.se_eligible = True
             record.se_when = "2"  
             return
@@ -814,7 +815,7 @@ code: |
           if record.supervision_needs_2:
             if record.supervision_complete_plus_2:
               record.ex_eligible = True
-              record.ex_when = "2"
+              record.ex_when = "2 sup"
               record.se_eligible = True
               if record.is_felony:
                 record.se_when = "3"
@@ -840,6 +841,10 @@ code: |
               record.se_eligible = True  
               record.se_when = "2"  
               return
+        else: # will catch supervision for reckless driving but over 25
+          if record.supervision_complete_plus_2:
+            record.ex_eligible = True
+            record.ex_when = "2 sup"
         record.se_eligible = True  
         record.se_when = "2"  
         return
@@ -862,10 +867,16 @@ code: |
       return "after you complete your **{last sentence}**."
     elif period == "2":
       return "**two years** after you complete your **{last sentence}**."
+    elif period == "2 sup":
+      return "**two years** after you successfully complete your supervision, and two years must pass since the end of the sentence for all other supervisions."
     elif period == "3":
       return "**three years** after you complete your **{last sentence}**."
     elif period == "5":
       return "**five years** after you complete your **{last sentence}**."
+    elif period == "5 sup":
+      return "**five years** after you successfully complete your supervision."
+    elif period == "5 qp":
+      return "**five years** after your Qualified Probation ended successfully."
     elif period == "61":
       return "after you successfully complete your problem-solving court or diversion program within 61 days of filing your expungement request."
     else:
@@ -1312,62 +1323,84 @@ code: |
   include_se = DAList("include_se", elements = temp_list_se)
   include_all = DAList("include_all", elements = temp_list_ex + temp_list_se)
 
+  ################## set expungement checkbox variables ###################
+
+  ex_reversed_any = False
+  ex_pardon_any = False
+  ex_cert_any = False
+  ex_innocent_any = False
+  ex_rwc_any = False
+  ex_minor_traffic_any = False
+  ex_dismissed_any = False
+  ex_diversion_any = False
+  ex_diversion_complete_now_any = False
+  ex_diversion_complete_soon_any = False
+  ex_qp_complete_5_any = False
+  ex_supervision_any = False
+  ex_supervision_complete_5_any = False
+  ex_supervision_complete_2_any = False
+  ex_not_supervision_exclusion_any = True # based on current form text, this is always checked since Easy Form will only allow eligible offenses to be expunged
+  ex_reckless_driving = False
+  
+  if include_ex.number() > 0:
+    for record in include_ex:
+
+      if record.rwc:
+        ex_rwc_any = True
+        if record.traffic:
+          ex_minor_traffic_any = True
+        continue
+
+      if record.after_arrest == "dismissed":
+        ex_dismissed_any = True
+        continue
+        
+      if record.after_arrest == "conviction":
+        if not record.reversed_none:
+          if record.reversed:
+            ex_reversed_any = True
+          if record.pardon:
+            ex_pardon_any = True
+          if record.certificate_ex:
+            ex_cert_any = True
+          if record.innocent:
+            ex_innocent_any = True
+        continue
+
+      if record.after_arrest == "diversion":
+        ex_diversion_any = True
+        if record.diversion_status == "complete":
+          ex_diversion_complete_now_any = True
+          continue
+        if record.diversion_status == "soon":
+          ex_diversion_complete_soon_any = True
+          continue
+
+      if record.after_arrest == "qualified_probation":
+        if record.qp_complete:
+          if record.qp_complete_plus_5:
+            ex_qp_complete_5_any = True
+            continue
+
+      if record.after_arrest == "supervision":
+        ex_supervision_any = True
+      if record.supervision_exclusion == "reckless":
+        if record.reckless_was_under_25:
+          if not record.reckless_other:
+            if record.reckless_now_25:
+              ex_reckless_driving = True
+      if record.supervision_needs_5:
+        if record.supervision_complete_plus_5:
+          ex_supervision_complete_5_any = True
+          continue
+      elif record.supervision_complete_plus_2:
+        ex_supervision_complete_2_any = True
+
+  ################## set sealing checkbox variables ###################
+
+  
+  
   build_case_lists = True
-
----
-code: |
-  def ex_rwc_any():
-
-    if include_ex.number() > 0:
-      for record in include_ex:  
-        if record.rwc:
-          return True
-  
-    return False
----
-code: |
-  def any_attr_value(record_list, attr, value=True):
-    for record in record_list:
-      try:
-        if getattr(record, attr, None) == value:
-          return True
-      except:
-        pass
-    return False
----
-code: |
-  def any_record_matches(record_list, conditions):
-    for record in record_list:
-      try:
-        if all(getattr(record, attr, None) == value for attr, value in conditions):
-          return True
-      except:
-        pass
-    return False
----
-id: debug
-continue button field: case_lists_built_debug
-question: |
-  Case lists code complete
-subquestion: |
-  Include Ex: ${ include_ex[0].case_number }
-
-  Include Se: ${ include_se[0].case_number }
-
-  Include All: ${ include_all[0].case_number }, ${ include_all[1].case_number }
----
-id: debug
-continue button field: debug_screen
-question: debug
-subquestion: |
-  % for record in include_ex:
-  * after_arrest: ${ showifdef('record.after_arrest') }
-  * diversion_status: ${ showifdef('record.diversion_status') }
-  * matches: ${ any_record_matches([record], [('after_arrest', 'diversion'), ('diversion_status', 'complete')]) }
-  ---
-  % endfor
-  
-  Full match: ${ any_record_matches(include_ex, [('after_arrest', 'diversion'), ('diversion_status', 'complete')]) }
 ---
 id: forms assembling
 continue button field: forms_assembling
@@ -1387,8 +1420,6 @@ question: |
   Download
 subquestion: |
   Your forms are ready. View and download your forms below. Click **:edit: Make changes** to fix any mistakes.
-
-  DEBUG - diversion soon: ${any_attr_value(include_ex, 'after_arrest', 'diversion') and any_attr_value(include_ex, 'diversion_status', 'soon')}
   
   Read the instructions for next steps on how to use the forms and follow up on your *Request*. 
   
@@ -1673,22 +1704,23 @@ attachment:
     - "ex_arrest_date_9": ${ format_date(include_ex[9].arrest_date, format='M/d/yyyy') if include_ex.number() > 9 else "" }
     - "ex_outcome_9": ${ include_ex[9].ex_outcome if include_ex.number() > 9 else "" }
     - "ex_additional_cb": ${ include_ex.number() > 10 }
-    - "ex_reverse": ${ True if any_attr_value(include_ex, 'reversed') else '' }
-    - "ex_pardon": ${ True if any_attr_value(include_ex, 'pardon') else '' }
-    - "ex_cert": ${ True if any_attr_value(include_ex, 'certificate_ex') else '' }
-    - "ex_innocent": ${ True if any_attr_value(include_ex, 'factually_innocent') else '' }
-    - "ex_rwc": ${ True if any_attr_value(include_ex, 'rwc') else '' }
-    - "ex_traffic_rwc": ${ True if any_attr_value(include_ex, 'traffic') else '' }
-    - "ex_diversion_cb": ${ "" }
-    - "ex_diversion_complete_now": ${ True if any_attr_value(include_ex, 'after_arrest', 'diversion') and any_attr_value(include_ex, 'diversion_status', 'complete') else '' }
-    - "ex_diversion_complete_61": ${ True if any_attr_value(include_ex, 'after_arrest', 'diversion') and any_attr_value(include_ex, 'diversion_status', 'soon') else '' }
-    - "ex_dismissed": ${ True if any_attr_value(include_ex, 'after_arrest', 'dismissed') else '' }
-    - "ex_qp_complete_5": ${ True if any_attr_value(include_ex, 'after_arrest', 'qualified_probation') and any_attr_value(include_ex, 'qp_complete') and any_attr_value(include_ex, 'qp_complete_plus_5') else '' }
-    - "ex_supervision_cb": ${ ""}
-    - "ex_supervision_complete_5": ${ "" }
-    - "ex_supervision_complete_2": ${ "" }
-    - "ex_not_supervision_exclusion": ${ "" }
-    - "ex_reckless_driving": ${ "" }
+      
+    - "ex_reverse": ${ ex_reversed_any if include_ex.number() > 0 else '' }
+    - "ex_pardon": ${ ex_pardon_any if include_ex.number() > 0 else '' }
+    - "ex_cert": ${ ex_cert_any if include_ex.number() > 0 else '' }
+    - "ex_innocent": ${ ex_innocent_any if include_ex.number() > 0 else '' }      
+    - "ex_rwc": ${ ex_rwc_any if include_ex.number() > 0 else '' }
+    - "ex_traffic_rwc": ${ ex_minor_traffic_any if include_ex.number() > 0 else '' }
+    - "ex_diversion_cb": ${ ex_diversion_any if include_ex.number() > 0 else '' }
+    - "ex_diversion_complete_now": ${ ex_diversion_complete_now_any if include_ex.number() > 0 else '' }
+    - "ex_diversion_complete_61": ${ ex_diversion_complete_soon_any if include_ex.number() > 0 else '' }
+    - "ex_dismissed": ${ ex_dismissed_any if include_ex.number() > 0 else '' }
+    - "ex_qp_complete_5": ${ ex_qp_complete_5_any if include_ex.number() > 0 else '' }
+    - "ex_supervision_cb": ${ ex_supervision_any if include_ex.number() > 0 else '' }
+    - "ex_supervision_complete_5": ${ ex_supervision_complete_5_any if include_ex.number() > 0 else '' }
+    - "ex_supervision_complete_2": ${ ex_supervision_complete_2_any if include_ex.number() > 0 else '' }
+    - "ex_not_supervision_exclusion": ${ ex_not_supervision_exclusion_any if include_ex.number() > 0 else '' }
+    - "ex_reckless_driving": ${ ex_reckless_driving if include_ex.number() > 0 else '' }
       
     - "seal_yes": ${ include_se.number() > 0 }
     - "seal_no": ${ include_se.number() == 0 }
@@ -2447,7 +2479,7 @@ review:
       % if x.certificate_se:
       * I received a Certificate of Eligibility for **Sealing** by the Prisoner Review Board.
       % endif
-      % if x.factually_innocent:
+      % if x.innocent:
       * I was found by a court that I am factually innocent in the case.
       % endif
     show if: x.after_arrest == "conviction" and not x.reversed_none
