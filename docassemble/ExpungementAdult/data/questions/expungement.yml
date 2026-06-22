@@ -214,6 +214,8 @@ subquestion: |
   * Minor traffic cases
   * Eviction records
   * Cannabis misdemeanor or felony convictions
+
+  TODO: add links to juvenlie and cannabis ex EFs
 continue button field: eligible_records
 ---
 id: info about first record
@@ -394,6 +396,11 @@ subquestion: |
 fields:
   - Did you successfully complete the sentence?: records[i].drugs_complete
     datatype: yesnoradio
+  - Have at least **2 years** passed since the end of your last sentence?: records[i].drugs_complete_plus_2
+    datatype: yesnoradio
+    show if:
+      variable: records[i].drugs_complete
+      is: True
       
 ---
 id: supervision exclusions
@@ -723,6 +730,7 @@ code: |
       elif record.diversion_status == "complete":
         record.ex_eligible = True
         record.ex_when = "now"
+        record.se_eligible = True
         if record.is_felony:
           record.se_when = "3"
         else:
@@ -731,6 +739,7 @@ code: |
       else: # will complete diversion within 61 days
         record.ex_eligible = True
         record.ex_when = "61"
+        record.se_eligible = True
         if record.is_felony:
           record.se_when = "3"
         else:
@@ -771,7 +780,13 @@ code: |
       if record.drugs_complete:
         record.ex_eligible = True
         record.ex_when = "5"
-        record.se_when = "2"  
+        if record.drugs_complete_plus_2:
+          record.se_when = "2"        
+        else:
+          if record.is_felony:
+            record.se_when = "3"
+          else:
+            record.se_when = "2"  
       else:
         if record.is_felony:
           record.se_when = "3"
@@ -922,7 +937,7 @@ subquestion: |
     * Sealing, ${format_waiting_period ( x[i].se_when ) }
   % endif
    
-  **Note:** You should only file to expunge or seal records after any waiting periods.
+  **Important:** You should only file to expunge or seal records after any waiting periods.
 
   TODO - add collapse template that explains diff between expugement & sealing
   % else:  
@@ -1389,16 +1404,94 @@ code: |
           if not record.reckless_other:
             if record.reckless_now_25:
               ex_reckless_driving = True
+              continue
       if record.supervision_needs_5:
         if record.supervision_complete_plus_5:
           ex_supervision_complete_5_any = True
           continue
       elif record.supervision_complete_plus_2:
         ex_supervision_complete_2_any = True
+        continue
 
   ################## set sealing checkbox variables ###################
 
+  se_qp_complete_no_wait = False
+  se_supervision_2 = False
+  se_misdemeanor_2 = False
+  se_drugs_complete_2 = False
+  se_felony_conviction_2 = False
+  se_felony_probation_revoked_3 = False
+  se_felony_jail_3 = False
+  se_not_registry = True # based on current form text, this is always checked since Easy Form will only allow eligible offenses to be sealed
+  se_cert = False
+  se_education_goal = False
+  se_human_trafficking = False
+  se_reckless_driving = False
+
+  if include_se.number() > 0:
+    for record in include_se:
   
+      if record.rwc:
+        continue
+
+      if record.after_arrest == "dismissed" or record.after_arrest == "dismissed":
+        continue
+
+      if record.after_arrest == "conviction":
+        if not record.reversed_none:
+          if record.certificate_se:
+            se_cert = True
+            continue
+  
+      if record.human_trafficking:
+        se_human_trafficking = True
+        continue
+
+      if record.after_arrest == "diversion":  
+        continue
+  
+      if record.after_arrest == "qualified_probation":
+        if record.qp_complete:
+          if record.qp_type == "second":
+            se_qp_complete_no_wait = True
+            continue
+
+      if record.after_arrest == "weapons":  
+        se_qp_complete_no_wait = True
+        continue
+  
+      if record.after_arrest == "supervision":
+        if record.supervision_exclusion == "reckless":
+          if record.reckless_conviction:
+            if not record.reckless_other_conviction:
+              if record.reckless_now_25_conviction:
+                se_reckless_driving = True
+                continue
+        if record.supervision_exlclusion == "none":
+          se_supervision_2 = True
+          continue 
+
+      if record.after_arrest == "drugs":
+        if record.drugs_complete:
+          if record.drugs_complete_plus_2:
+            se_drugs_complete_2 = True
+          continue
+  
+      if record.is_felony:
+        if record.discharge_type == "complete":
+          se_felony_conviction_2 = True
+          continue
+        else:  
+          if ed_program_complete:
+            se_education_goal = True
+          if record.discharge_type == "revoked":
+            se_felony_probation_revoked_3
+            continue
+          else:
+            se_felony_jail_3 = True
+            continue
+      else:
+        se_misdemeanor_2 = True
   
   build_case_lists = True
 ---
@@ -1776,18 +1869,18 @@ attachment:
     - "se_outcome_9": ${ include_se[9].se_outcome if include_se.number() > 9 else "" }
 
     - "se_additional_cb": ${ include_se.number() > 10 }
-    - "se_qp_complete_no_wait": ${ "" }
-    - "se_supervision_2": ${ "" }
-    - "se_misdemeanor_2": ${ "" }
-    - "se_drugs_complete_2": ${ "" }
-    - "se_felony_conviction_2": ${ "" }
-    - "se_felony_probation_revoked_3": ${ "" }
-    - "se_felony_jail_3": ${ "" }
-    - "se_not_registry": ${ "" }
-    - "se_cert": ${ "" }
-    - "se_education_goal": ${ "" }
-    - "se_human_trafficking": ${ "" }
-    - "se_reckless_driving": ${ "" }
+    - "se_qp_complete_no_wait": ${ se_qp_complete_no_wait if include_se.number() > 0 else '' }
+    - "se_supervision_2": ${ se_supervision_2 if include_se.number() > 0 else '' }
+    - "se_misdemeanor_2": ${ se_misdemeanor_2 if include_se.number() > 0 else '' }
+    - "se_drugs_complete_2": ${ se_drugs_complete_2 if include_se.number() > 0 else '' }
+    - "se_felony_conviction_2": ${ se_felony_conviction_2 if include_se.number() > 0 else '' }
+    - "se_felony_probation_revoked_3": ${ se_felony_probation_revoked_3 if include_se.number() > 0 else '' }
+    - "se_felony_jail_3": ${ se_felony_jail_3 if include_se.number() > 0 else '' }
+    - "se_not_registry": ${ se_not_registry if include_se.number() > 0 else '' }
+    - "se_cert": ${ se_cert if include_se.number() > 0 else '' }
+    - "se_education_goal": ${ se_education_goal if include_se.number() > 0 else '' }
+    - "se_human_trafficking": ${ se_human_trafficking if include_se.number() > 0 else '' }
+    - "se_reckless_driving": ${ se_reckless_driving if include_se.number() > 0 else '' }
     - "e_sign_name": ${ users[0].name_full() if e_signature else "" }
     - "user_name_2": ${ users[0].name_full() }
     - "for_self": ${ True }
@@ -2535,7 +2628,6 @@ review:
     button: |
       **Were you a victim of human trafficking when the offense was committed?**
       ${word(yesno(x.human_trafficking))}
-    show if: x.after_arrest == "conviction"
   - Edit: x.discharge_type
     button: |
       **After the conviction, did you receive a sentence of conditional discharge or probation, or did you complete an Illinois prison or jail sentence?**
