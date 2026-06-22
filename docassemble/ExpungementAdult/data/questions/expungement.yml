@@ -441,7 +441,7 @@ subquestion: |
   ---
 fields:
   - note: |
-      Was your supervision for any of these offenses?
+      Special rules apply when asking to expunge or seal these offenses:
 
       * Domestic Battery
       * Criminal Sexual Abuse
@@ -449,7 +449,7 @@ fields:
       * Driving with Registration Suspended for Non-Insurance
       * Display of False Insurance Card
       * Scrap Processors to Keep Records    
-  - no label: records[i].supervision_needs_5
+  - Was your supervision for any of these offenses?: records[i].supervision_needs_5
     datatype: yesnoradio
   - Did you successfully complete your supervision?: records[i].supervision_complete
     datatype: yesnoradio
@@ -578,8 +578,10 @@ id: human trafficking question
 question: |
   Human trafficking
 subquestion: |
-  If you are a victim of human trafficking, you may be able to seal eligible cases sooner.
+  If you are a victim of human trafficking, you may be able to seal eligible cases sooner. There may be other remedies beyond expungement and sealing if you were a victim of human trafficking.
   
+  **Important:** Proving to the court that you were a victim of human trafficking is complicated and depends on the facts of your situation. A lawyer can explain your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area. 
+
   To be eligible, the following must be true:
   
   * You are a trafficking victim as defined under [**Section 10-9 of the Criminal Code of 2012**](https://www.ilga.gov/legislation/ILCS/details?MajorTopic=&Chapter=&ActName=Criminal%20Code%20of%202012.&ActID=1876&ChapterID=53&ChapAct=720+ILCS+5%2F&SeqStart=12400000&SeqEnd=13900000),
@@ -587,8 +589,6 @@ subquestion: |
   * Your participation in the offense was a direct result of human trafficking under Section 10-9 of the Criminal Code of 2012 or a severe form of trafficking under the federal Trafficking Victims Protection Act.
 
   **Note:** Select **Yes** only if all of the above are true.
-
-  There may be other remedies beyond expungement and sealing if you were a victim of human trafficking. A lawyer can explain your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area. 
 fields:
   - "Were you a victim of human trafficking when the offense was committed?": records[i].human_trafficking
     datatype: yesnoradio
@@ -711,7 +711,7 @@ code: |
           return
         if record.discharge_type == "revoked" or record.discharge_type == "jail":
           if ed_program_complete:
-            record.se_when = "now"
+            record.se_when = "last"
             return
         if record.is_felony:  
           record.se_when = "3"
@@ -795,8 +795,14 @@ code: |
       return
   
     if record.after_arrest == "supervision":
-      if record.unsealable:
+
+      # code added to skip unsealable question if special reckless driving relief allowed 
+      if not (getattr(record, 'reckless_was_under_25', False) and not getattr(record, 'reckless_other', True) and getattr(record, 'reckless_now_25', False)) and record.unsealable:
         return
+  
+      # code replaced by the above
+      # if record.unsealable:
+      #   return
   
       if record.supervision_exclusion == "none":  
         if not record.supervision_complete:
@@ -935,8 +941,14 @@ subquestion: |
   
   % if x[i].se_eligible:
     * Sealing, ${format_waiting_period ( x[i].se_when ) }
+
+  % if defined('ed_program_complete'):
+  % if ed_program_complete:
+  The waiting period for sealing may have been reduced since you completed an educational goal during your last sentence.
+  
   % endif
-   
+  % endif
+  % endif
   **Important:** You should only file to expunge or seal records after any waiting periods.
 
   TODO - add collapse template that explains diff between expugement & sealing
@@ -1442,10 +1454,17 @@ code: |
           if record.certificate_se:
             se_cert = True
             continue
+        if record.reckless_conviction:
+          if record.reckless_was_under_25_conviction:
+            if not record.reckless_other_conviction:
+              if record.reckless_now_25_conviction:
+                se_reckless_driving = True
+                continue
   
-      if record.human_trafficking:
-        se_human_trafficking = True
-        continue
+      if defined('record.human_trafficking'):
+        if record.human_trafficking:
+          se_human_trafficking = True
+          continue
 
       if record.after_arrest == "diversion":  
         continue
@@ -1462,12 +1481,12 @@ code: |
   
       if record.after_arrest == "supervision":
         if record.supervision_exclusion == "reckless":
-          if record.reckless_conviction:
-            if not record.reckless_other_conviction:
-              if record.reckless_now_25_conviction:
+          if record.reckless_was_under_25:
+            if not record.reckless_other:
+              if record.reckless_now_25:
                 se_reckless_driving = True
                 continue
-        if record.supervision_exlclusion == "none":
+        if record.supervision_exclusion == "none":
           se_supervision_2 = True
           continue 
 
@@ -1480,16 +1499,14 @@ code: |
       if record.is_felony:
         if record.discharge_type == "complete":
           se_felony_conviction_2 = True
-          continue
         else:  
           if ed_program_complete:
             se_education_goal = True
-          if record.discharge_type == "revoked":
-            se_felony_probation_revoked_3
             continue
+          if record.discharge_type == "revoked":
+            se_felony_probation_revoked_3 = True
           else:
             se_felony_jail_3 = True
-            continue
       else:
         se_misdemeanor_2 = True
   
@@ -2263,7 +2280,7 @@ review:
       ${ filing_county }
   - Edit: records.revisit
     button: |
-      **Records:**
+      **Records: (Edit to review, change details, or add more)**
 
       % for my_var in records:
       % if defined("my_var.include"):
@@ -2357,7 +2374,7 @@ review:
       ${ filing_county }
   - Edit: records.revisit
     button: |
-      **Records: (Edit to review and change details)**
+      **Records: (Edit to review, change details, or add more)**
 
       % for my_var in records:
       % if defined("my_var.include"):
