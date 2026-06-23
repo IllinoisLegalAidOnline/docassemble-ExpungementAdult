@@ -44,8 +44,12 @@ code: |
   how_to_use
   set_progress(5)
   accept_terms
-  expungement_info
-  records_info
+  if read_or_skip:
+    expungement_info
+    more_expungement_info
+    records_info
+    more_records_info
+  other_programs_info
   whats_next
 
   set_progress(25)  
@@ -132,7 +136,13 @@ question: |
 subquestion: |
   Welcome to Illinois Legal Aid Online's **Expunge or seal criminal records** Easy Form.
 
-  This program helps you make a *${ form_name }*.
+  This program helps you make a *${ form_name }*. It can be used to clear criminal records of the:
+  
+  * Offenses for which you were arrested,
+  * Offenses you were charged with, and
+  * Outcome of those cases, including any sentences you received.
+
+  To learn more, read ILAO's article about [**expunging or sealing a criminal record**](https://www.illinoislegalaid.org/node/37706).
 field: sees_nav_bar
 ---
 id: instructions
@@ -140,9 +150,13 @@ continue button field: how_to_use
 question: |
   Instructions
 subquestion: |
-  To fill out the forms, you will need to know:
+  To fill out the forms, you will need:
 
-  * Things
+  * Court records (might be called a "docket sheet" or a "**{disposition}**") for all of your criminal cases,
+  * Your Illinois State Police Statewide Criminal History Transcript, and
+  * If you had arrests or charges in Chicago, your Chicago Police RAP Sheet (Record of Arrests and Prosecutions).
+
+  **Note:** In a few screens, we will explain how you can view or get copies of your criminal records.
 
   Set aside 15 to 45 minutes to finish this program. You can log in and save your work to continue later. 
  
@@ -156,19 +170,128 @@ subject: |
 content: |  
   This is an example of help. Click again to hide.
 ---
+terms:
+  - "disposition": |
+      A **disposition** is the final judgment or outcome in a court case. There are no court dispositions for arrests or charges that did not lead to a court case.
+---
+id: read or skip information
+question: |
+  Do you want to read information now?
+subquestion: |
+  If you want to read information about criminal records relief in Illinois, click **Yes**. You can go through four screen screens before making your forms.
+
+  If you want to read it later, click **No**. You can go through them at any time using the Review screens. **TODO: ADD INFO HERE** Also, the information will be included in the instructions you can download when you get your forms.
+fields:
+  - Read information about criminal records now?: read_or_skip
+    datatype: yesnoradio
+---
 id: expungement info
 continue button field: expungement_info
 question: |
-  Expungement info placeholder
+  Clearing your criminal record in Illinois
 subquestion: |
-  ADD content
+  When you are arrested or charged with an offense, a criminal record is created, even if you are not found guilty. Your criminal records can be read by the public, including your family, friends, employers, trade organizations, banks, and credit agencies. To have your record erased or hidden you must file a *${ form_name }* with the court and have a judge approve your *Request*.
 
-  Include information about how an open case, pending disposition, still serving sentence may affect eligibility. Waiting periods are determined by law, but judge can decide if a case can be expunged or sealed if it is immediately eligible.
+  There are three ways to clear your criminal record:
+
+  * **Expungement**: Erases arrests, dismissed charges, court supervisions, and qualified probations that were completed successfully from your criminal record so it is like they never happened.
+  * **Sealing**: Hides convictions on your criminal record from most of the public. Law enforcement agencies can still see sealed records. Employers required by law to conduct background checks can see sealed felony convictions. They cannot see sealed misdemeanor convictions or cases not resulting in convictions unless the employer is a law enforcement agency.
+  * **Executive Clemency**: If you do not qualify for expungement or sealing, you can apply for a pardon from the Governor forgiving you for your criminal convictions. A pardon does not erase or hide your conviction on its own. If you get a pardon authorizing expungement, you can then apply to have your record expunged. To learn more about getting a pardon, read ILAO's article about [**executive clemency**](https://www.illinoislegalaid.org/node/37761).
+---
+id: more expungement info
+continue button field: more_expungement_info
+question: |
+  Obstacles to clearing your criminal record
+subquestion: |
+  You might not be eligible from getting your criminal records expunged or sealed if:
+  
+  * You have any pending criminal charges,
+  * You have not completed your sentence, including parole, probation, or court supervision,
+  * Your records for some offenses are not eligible for expungement or sealing, or
+  * A required waiting period for sealing your offense has not passed yet.
+
+  Also, police departments and prosecutors for your criminal cases get a chance to object to your *Request* to expunge or seal your criminal record.
+
+  * The police departments and prosecutors have 60 days from the day they receive your *Request* to file a written objection with the court. If they **object**, it means they do not want your record to be expunged or sealed. If the agencies do not object during the 60 days, they cannot object at a later time.
+  * An **objection** does not mean the court is denying your *Request*. The court will consider the objection when deciding if your criminal record will be expunged or sealed.
 ---
 id: records info
 continue button field: records_info
 question: |
-  Records info placeholder
+  Learn about criminal records
+subquestion: |
+  There are two types of criminal records: court records and police records. You do not need to pay for copies of all of your criminal records.
+
+  **Court records**
+
+  * You will need records for all of your court cases. This may be called a "docket sheet" or a "disposition." A disposition is the final judgment or outcome in a court case. There are no court dispositions for arrests or charges that did not lead to a court case.
+
+  **Police records**
+
+  * Illinois State Police Statewide Criminal History Transcript: List of most arrests and convictions that happened in Illinois.
+  * Chicago RAP Sheet (Record of Arrests and Prosecutions): List of all arrests, charges, and court case outcomes that happened in Chicago.
+---
+id: more records info
+continue button field: more_records_info
+question: |
+  How to view or get copies of your criminal records
+subquestion: |
+  Records from the **Circuit Clerk**: Many court records are available online. Some counties, like Cook County, do not provide online access to criminal records.
+  ${ collapse_template(clerk_records_help) } 
+  
+  Records from the **Illinois State Police**: You are allowed to access your entire criminal history information from the Illinois State Police. Although not required, it is the best available source for your statewide criminal record. Please note, there might be discrepancies or missing information.
+  ${ collapse_template(isp_records_help) }
+
+  Records from the **Chicago Police Department**: If you were arrested in Chicago, you MUST get your records from the Chicago Police Department. Order a RAP sheet from the Chicago Police Department if you were arrested in Chicago. There will be a fee.
+  ${ collapse_template(cpd_records_help) }
+---
+template: clerk_records_help
+subject: |
+  **How to access records from the Circuit Clerk**
+content: |  
+  If you cannot find your court records online, go to the Circuit Clerk’s Office in the county where your case was filed. Ask the Circuit Clerk for the information you need to fill out the forms. This information can be found in your court records.
+  
+  You may be able to use the public computer at the Circuit Clerk's office to look up records and print them out or write down the information. Copies are available for a fee. Find your Circuit Clerk's website at: [ilcourts.info/clerks](https://ilcourts.info/clerks).
+---
+template: isp_records_help
+subject: |
+  **How to access records from the Illinois State Police**
+content: |
+  You can get a "Statewide Criminal History Transcript" in 3 ways:
+
+  * From the Illinois State Police:[NEWLINE]
+    Illinois State Police[NEWLINE]
+    Bureau of Identification[NEWLINE]
+    260 North Chicago Street[NEWLINE]
+    Joliet, Illinois 60432[NEWLINE]
+    (815) 740-5160[NEWLINE]
+    [isp.illinois.gov/BureauOfIdentification](https://isp.illinois.gov/BureauOfIdentification)
+
+  * From your local law enforcement agency:[NEWLINE]
+    Every law enforcement agency is allowed to provide you this information. Check with your local law enforcement agency to find out costs and times for fingerprinting.
+
+  * From any licensed LiveScan vendor to get your transcript using your fingerprint. Find a LiveScan vendor at the [Illinois Department of Financial and Professional Regulation](https://idfprapps.illinois.gov/licenselookup/fingerprintlist.asp) website.
+---
+template: cpd_records_help
+subject: |
+  **How to access records from the Chicago Police Department**
+content: |
+  To access records from the Chicago Police Department:
+  
+  * You must go to the Chicago Police Department to get your Chicago RAP sheet:[NEWLINE]
+    Chicago Police Headquarters[NEWLINE]
+    3510 S. Michigan Ave.[NEWLINE]
+    Chicago, IL[NEWLINE]
+    (312) 745-5508[NEWLINE]
+  
+  * You will receive your RAP sheet in the mail.
+  
+  * You should also request a copy of your Illinois State Police Statewide Criminal History Transcript. The Chicago Police will provide your state record for no additional cost.
+---
+id: other expungement programs
+continue button field: other_programs_info
+question: |
+  Juvenlie and cannabis info placeholder
 subquestion: |
   ADD content
 ---
@@ -2271,7 +2394,14 @@ question: |
   Review screen
 subquestion: |
   Edit your answers below.
-review: 
+review:
+  - Edit:         
+      - expungement_info
+      - more_expungement_info
+      - records_info
+      - more_records_info
+    button: |
+      **Read information about criminal records**
   - note: |
       <h4>Your records</h4>
   - Edit: filing_county
@@ -2368,6 +2498,13 @@ question: |
 subquestion: |
   Edit your answers below.
 review:
+  - Edit:         
+      - expungement_info
+      - more_expungement_info
+      - records_info
+      - more_records_info
+    button: |
+      **Read information about criminal records**
   - Edit: filing_county
     button: |
       **County where you want to expunge or seal records:**
