@@ -49,7 +49,7 @@ code: |
     more_expungement_info
     records_info
     more_records_info
-  other_programs_info
+  eligible_records
   whats_next
 
   set_progress(25)  
@@ -57,7 +57,6 @@ code: |
   filing_county
   build_expungement_outcomes()
   build_sealing_outcomes()
-  eligible_records
   records.gather()
   #eligibility_summary
 
@@ -180,7 +179,7 @@ question: |
 subquestion: |
   If you want to read information about criminal records relief in Illinois, click **Yes**. You can go through four screen screens before making your forms.
 
-  If you want to read it later, click **No**. You can go through them at any time using the Review screens. **TODO: ADD INFO HERE** Also, the information will be included in the instructions you can download when you get your forms.
+  If you want to read it later, click **No**. You can see them on any Review screen. Just click **:edit: Edit answers** later in the Easy Form.  Also, the information will be included in the instructions you can download when you get your forms.
 fields:
   - Read information about criminal records now?: read_or_skip
     datatype: yesnoradio
@@ -218,7 +217,7 @@ subquestion: |
 id: records info
 continue button field: records_info
 question: |
-  Learn about criminal records
+  Two kinds of criminal records
 subquestion: |
   There are two types of criminal records: court records and police records. You do not need to pay for copies of all of your criminal records.
 
@@ -288,32 +287,61 @@ content: |
   
   * You should also request a copy of your Illinois State Police Statewide Criminal History Transcript. The Chicago Police will provide your state record for no additional cost.
 ---
-id: other expungement programs
-continue button field: other_programs_info
+id: eligible records
 question: |
-  Juvenlie and cannabis info placeholder
+  Eligible records
 subquestion: |
-  ADD content
+  This Easy Form can remove eligible police or court records for adult criminal offenses in Illinois. It cannot help with these kinds of records:
+
+  * Juvenile
+  * Cannabis misdemeanor or Class 4 felony convictions
+  * Eviction records
+  * Minor traffic cases (Class C misdemeanor or below)
+  * Criminal records outside Illinois
+  * Federal
+
+  You can use our [**Expunge juvenile records**](https://www.illinoislegalaid.org/node/30856) Easy Form to clear eligible offenses from your juvenile record.
+  
+  There are different ways to clear cannabis records. Some records qualify for automatic expungement. Others can be vacated and expunged. You can use our [Cannabis expungement](https://www.illinoislegalaid.org/node/173941) Easy Form if you want to expunge cannabis-related convictions. To learn more about cannabis records relief, read ILAO's article about [**clearing your record**](https://www.illinoislegalaid.org/node/165861).
+
+  If you want to remove an eviction from the public record, use our [**Remove eviction from public record**](https://www.illinoislegalaid.org/node/183526) Easy Form.
+continue button field: eligible_records
 ---
 id: whats next
 continue button field: whats_next
 question: |
-  Whats next placeholder
+  After you finish this program
 subquestion: |
-  ADD info
+  Once you download your forms, you must file them with the court. This program **does not file** your forms for you.
+
+  There may be fees to get records from police departments, certified dispositions, or court filing fees. There also may be an Illinois State Police processing fee to process your expungement or sealing court order. The Circuit Clerk collects this fee with the filing fee.
+
+  **Note:** If you cannot afford the Circuit Clerk filing fee or the Illinois State Police processing fee, you can ask the court to waive those fees. You can use ILAO's [**Fee waiver Easy Form**](https://www.illinoislegalaid.org/node/30831) to make forms to ask the court to file for free or at a reduced cost.
+
+  After you file the *${ form_name }* and get a court date, you may need to go to court for a court date in front of a judge. Some counties schedule a court date right away, but others will only schedule a court date if there is an objection to your *Request*.
+  
+  To learn more about what's next, read the instructions you can download at the end of this program.
 ---
 id: next steps
 continue button field: next_steps
 question: |
-  Next steps placeholder
+  Next steps
 subquestion: |
-  ADD info
+  After you download your forms, you must file them with the court. This program **does not file** your forms for you.
+
+  There may be fees to get records from police departments, certified dispositions, or court filing fees. There also may be an Illinois State Police processing fee to process your expungement or sealing court order. The Circuit Clerk collects this fee with the filing fee.
+
+  **Note:** If you cannot afford the Circuit Clerk filing fee or the Illinois State Police processing fee, you can ask the court to waive those fees. You can use ILAO's [**Fee waiver Easy Form**](https://www.illinoislegalaid.org/node/30831) to make forms to ask the court to file for free or at a reduced cost.
+
+  After you file the *${ form_name }* and get a court date, you may need to go to court for a court date in front of a judge. Some counties schedule a court date right away, but others will only schedule a court date if there is an objection to your *Request*.
+  
+  To learn more about what's next, read the instructions you can download on an upcoming screen.
 ---
 id: filing county
 question: |
   In which county do you want to expunge or seal your criminal records?
 subquestion: |
-  This Easy Form will make forms to expunge or seal criminal offenses that took place within a single county.
+  This Easy Form will make forms to expunge or seal criminal offenses that took place **within a single county**.
 
   If you have been arrested, charged with an offense, or convicted in more than one county, you will have a criminal record in each county. To expunge or seal your criminal records in more than one county, you will have to use this Easy Form once for each county.
 
@@ -322,24 +350,6 @@ fields:
   - County: filing_county
     code:
       court_list._load_courts()["address_county"].unique()
----
-id: eligible records
-question: |
-  Eligible records
-subquestion: |
-  This Easy Form can remove eligible police or court records for criminal offenses in Illinois.
-  
-  It cannot help with these kinds of records:
-
-  * Juvenile
-  * Federal
-  * Criminal records outside Illinois
-  * Minor traffic cases
-  * Eviction records
-  * Cannabis misdemeanor or felony convictions
-
-  TODO: add links to juvenlie and cannabis ex EFs
-continue button field: eligible_records
 ---
 id: info about first record
 question: |
@@ -2393,15 +2403,18 @@ event: review_answers
 question: |
   Review screen
 subquestion: |
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">Information about criminal records relief</h6>
+    <p><ul>
+      <li><a href="${url_action('expungement_info')}"><b>Clearing your criminal record in Illinois</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Obstacles to clearing your criminal record</b></a></li>
+      <li><a href="${url_action('records_info')}"><b>Two kinds of criminal records</b></a></li>
+      <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your criminal records</b></a></li>
+    </p>
+  </div>
+  
   Edit your answers below.
 review:
-  - Edit:         
-      - expungement_info
-      - more_expungement_info
-      - records_info
-      - more_records_info
-    button: |
-      **Read information about criminal records**
   - note: |
       <h4>Your records</h4>
   - Edit: filing_county
@@ -2496,15 +2509,18 @@ event: section_records
 question: |
   Your records
 subquestion: |
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">Information about criminal records relief</h6>
+    <p><ul>
+      <li><a href="${url_action('expungement_info')}"><b>Clearing your criminal record in Illinois</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Obstacles to clearing your criminal record</b></a></li>
+      <li><a href="${url_action('records_info')}"><b>Two kinds of criminal records</b></a></li>
+      <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your criminal records</b></a></li>
+    </p>
+  </div>
+  
   Edit your answers below.
 review:
-  - Edit:         
-      - expungement_info
-      - more_expungement_info
-      - records_info
-      - more_records_info
-    button: |
-      **Read information about criminal records**
   - Edit: filing_county
     button: |
       **County where you want to expunge or seal records:**
@@ -2538,7 +2554,17 @@ continue button field: records.revisit
 question: |
   Edit records
 subquestion: |
-  Click **Edit** to review record details.
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">Information about criminal records relief</h6>
+    <p><ul>
+      <li><a href="${url_action('expungement_info')}"><b>Clearing your criminal record in Illinois</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Obstacles to clearing your criminal record</b></a></li>
+      <li><a href="${url_action('records_info')}"><b>Two kinds of criminal records</b></a></li>
+      <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your criminal records</b></a></li>
+    </p>
+  </div>
+  
+  Edit your answers below.
 
   **Note:** Changing these details may affect eligibility for expungement and sealing. Be sure to review your forms before filing.
 
@@ -2568,6 +2594,18 @@ generic object: DAObject
 question: |
   Edit record details
 subquestion: |
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">Information about criminal records relief</h6>
+    <p><ul>
+      <li><a href="${url_action('expungement_info')}"><b>Clearing your criminal record in Illinois</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Obstacles to clearing your criminal record</b></a></li>
+      <li><a href="${url_action('records_info')}"><b>Two kinds of criminal records</b></a></li>
+      <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your criminal records</b></a></li>
+    </p>
+  </div>
+
+  Edit your answers below.
+  
   **Note:** Changing these details may affect eligibility for expungement and sealing. Be sure to review your forms before filing.
 review: 
   - Edit: x.arrest_date
@@ -2858,6 +2896,16 @@ event: section_user
 question: |
   About you
 subquestion: |
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">Information about criminal records relief</h6>
+    <p><ul>
+      <li><a href="${url_action('expungement_info')}"><b>Clearing your criminal record in Illinois</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Obstacles to clearing your criminal record</b></a></li>
+      <li><a href="${url_action('records_info')}"><b>Two kinds of criminal records</b></a></li>
+      <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your criminal records</b></a></li>
+    </p>
+  </div>
+  
   Edit your answers below.
 review:
   - Edit: users[0].name.first
