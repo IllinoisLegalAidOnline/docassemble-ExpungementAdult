@@ -12,6 +12,7 @@ include:
 ---
 objects:
   - users: ALPeopleList.using(there_are_any=True)
+  - order_recipient: ALIndividual
   - records: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True)  
   - court_list: ALCourtLoader.using(file_name='docassemble.ILAO:data/sources/il_courts.xlsx')
   - expungement_outcomes: DAList.using(there_are_any=True)
@@ -72,6 +73,10 @@ code: |
   users[0].gender
   users[0].address.address
   users[0].phone_number
+  if add_order_recipient:
+    order_recipient.name.first
+    order_recipient.address.address
+    order_recipient.phone_number
   e_signature
   next_steps
 
@@ -1283,7 +1288,6 @@ code: |
     })
     expungement_outcomes.gathered = True
     return
-
 ---
 template: sealing_outcomes_help
 subject: |
@@ -1340,6 +1344,8 @@ sets:
   - users[0].name.first
 question:  |
   What is your name?
+subquestion: |
+  **Note:** If you want the court to send the order to another person, you can enter it on another screen. This should be your name.
 fields:
   - code: |
       users[0].name_fields()
@@ -1421,6 +1427,8 @@ question: |
   What is your address?
 subquestion: |
   **This address will appear on your court papers.** You may receive court notices and documents about your case at this address.
+
+  **Note:** If you want the court to send the order to another address, you can enter it on another screen. This should be your address.
 fields:
   - Street address: users[0].address.address
     address autocomplete: True
@@ -1478,6 +1486,60 @@ content: |
   * [**Gmail**](https://accounts.google.com/SignUp)
   * [**Outlook**](https://outlook.live.com/owa/?nlp=1&signup=1)
   * [**Yahoo**](https://login.yahoo.com/account/create?.lang=en-US&.intl=us)
+---
+id: add order recipient
+question: |
+  Do you want the court to send the order to another person or address? 
+subquestion: |
+  You entered the following contact information for yourself.
+
+  Address: ${ users[0].address.on_one_line(bare=True)}[NEWLINE]
+  Phone: ${ phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else "None entered" }[NEWLINE]
+  Email: ${ users[0].email if users[0].has_email_address else "None entered" }
+  
+  The court will send the order to you at this address unless you select **Yes**. You can enter another person and contact information on the next screens.
+fields:
+  - "Send order to another person or address?": add_order_recipient
+    datatype: yesnoradio
+---
+id: order recipient name
+sets:
+  - order_recipient.name.first
+question:  |
+  Who do you want the court to send the order to?
+fields:
+  - code: |
+      order_recipient.name_fields()
+---
+id: order recipient address
+question: |
+  At what address should the court send the order to ${order_recipient.name_full() }?
+subquestion: |
+  **This address will appear on your court papers.**
+fields:
+  - Street address: order_recipient.address.address
+    address autocomplete: True
+  - Address line 2: order_recipient.address.unit
+    required: False
+  - City: order_recipient.address.city
+  - State: order_recipient.address.state
+    code: |
+      states_list()
+    default: IL      
+  - ZIP code: order_recipient.address.zip
+---
+id: order recipient contact information
+question: |
+  What is ${order_recipient.name_full() }'s contact information?
+subquestion: |
+  **This information will appear on your court forms.**
+fields:  
+  - Phone number: order_recipient.phone_number
+    datatype: al_international_phone
+    required: False
+  - Email address: order_recipient.email    
+    datatype: email
+    required: False
 ---
 id: e-signature
 question: |
@@ -2333,10 +2395,25 @@ attachment:
         % endif
     - "case_number": ${ "" }
     - "case_number_2": ${ "" }
-    - "user_name_2": ${ users[0].name_full() }
-    - "user_phone": ${ phone_number_formatted(users[0].phone_number) }
-    - "user_email": ${ users[0].email if users[0].has_email_address else "" }
-    - "user_address": ${ users[0].address.on_one_line(bare=True) }
+    - "user_name_2": ${ order_recipient.name_full() if add_order_recipient else users[0].name_full() }
+    - "user_phone": |
+        % if add_order_recipient:
+        ${ phone_number_formatted(order_recipient.phone_number) }
+        % else:
+        ${ phone_number_formatted(users[0].phone_number) }
+        % endif
+    - "user_email": |
+        % if add_order_recipient:
+        ${ order_recipient.email }
+        % else:
+        ${ users[0].email if users[0].has_email_address else "" }
+        % endif
+    - "user_address": |
+        % if add_order_recipient:
+        ${ order_recipient.address.on_one_line(bare=True) }
+        % else:
+        ${ users[0].address.on_one_line(bare=True) }
+        % endif
     - "attorney_number": ${""}
     - "ex_record_0": ${ include_ex[x.ex_chunk_start].case_number if x.ex_chunk_end > x.ex_chunk_start else "" }
     - "ex_record_1": ${ include_ex[x.ex_chunk_start + 1].case_number if x.ex_chunk_end > x.ex_chunk_start + 1 else "" }
@@ -2425,10 +2502,25 @@ attachment:
         ${ users[0].gender }
         % endif
     - "case_number": ${ "" }
-    - "user_name_2": ${ users[0].name_full() }
-    - "user_phone": ${ phone_number_formatted(users[0].phone_number) }
-    - "user_email": ${ users[0].email if users[0].has_email_address else "" }
-    - "user_address": ${ users[0].address.on_one_line(bare=True) }
+    - "user_name_2": ${ order_recipient.name_full() if add_order_recipient else users[0].name_full() }
+    - "user_phone": |
+        % if add_order_recipient:
+        ${ phone_number_formatted(order_recipient.phone_number) }
+        % else:
+        ${ phone_number_formatted(users[0].phone_number) }
+        % endif
+    - "user_email": |
+        % if add_order_recipient:
+        ${ order_recipient.email }
+        % else:
+        ${ users[0].email if users[0].has_email_address else "" }
+        % endif
+    - "user_address": |
+        % if add_order_recipient:
+        ${ order_recipient.address.on_one_line(bare=True) }
+        % else:
+        ${ users[0].address.on_one_line(bare=True) }
+        % endif
     - "attorney_number": ${""}
 
 
@@ -2512,7 +2604,7 @@ review:
       ${ user_gender_other }
       % else:
       ${ users[0].gender }
-      % endif      
+      % endif
   - Edit: users[0].address.address
     button: |
       **Your address:**[NEWLINE]
@@ -2534,6 +2626,34 @@ review:
       **Your email:**
       ${ users[0].email }
     show if: users[0].has_email_address
+  - Edit: add_order_recipient
+    button: |
+      **Do you want the court to send the order to another person or address?**
+      ${ word(yesno(add_order_recipient)) }      
+  - Edit: order_recipient.name.first
+    button: |
+      **Send order to this person:**
+      ${ order_recipient.name_full() }
+    show if: add_order_recipient
+  - Edit: order_recipient.address.address
+    button: |
+      **${ order_recipient.name_full() }'s address:**[NEWLINE]
+      ${ order_recipient.address.on_one_line(bare=True) }
+    show if: add_order_recipient
+  - Edit: order_recipient.phone_number
+    button: |
+      **${ order_recipient.name_full() }'s phone number:**
+      % if order_recipient.phone_number == "":
+      None entered
+      % else:
+      ${ phone_number_formatted(order_recipient.phone_number) }
+      % endif
+    show if: add_order_recipient
+  - Edit: order_recipient.email
+    button: |
+      **${ order_recipient.name_full() }'s email:**
+      ${ order_recipient.email }
+    show if: add_order_recipient    
   - Edit: e_signature
     button: |
       **Do you want to add your e-signature to your forms?**
@@ -2996,6 +3116,34 @@ review:
       **Your email:**
       ${ users[0].email }
     show if: users[0].has_email_address
+  - Edit: add_order_recipient
+    button: |
+      **Do you want the court to send the order to another person or address?**
+      ${ word(yesno(add_order_recipient)) }      
+  - Edit: order_recipient.name.first
+    button: |
+      **Send order to this person:**
+      ${ order_recipient.name_full() }
+    show if: add_order_recipient
+  - Edit: order_recipient.address.address
+    button: |
+      **${ order_recipient.name_full() }'s address:**[NEWLINE]
+      ${ order_recipient.address.on_one_line(bare=True) }
+    show if: add_order_recipient
+  - Edit: order_recipient.phone_number
+    button: |
+      **${ order_recipient.name_full() }'s phone number:**
+      % if order_recipient.phone_number == "":
+      None entered
+      % else:
+      ${ phone_number_formatted(order_recipient.phone_number) }
+      % endif
+    show if: add_order_recipient
+  - Edit: order_recipient.email
+    button: |
+      **${ order_recipient.name_full() }'s email:**
+      ${ order_recipient.email }
+    show if: add_order_recipient    
   - Edit: e_signature
     button: |
       **Do you want to add your e-signature to your forms?**
