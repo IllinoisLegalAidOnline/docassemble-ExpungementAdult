@@ -219,7 +219,7 @@ continue button field: more_expungement_info
 question: |
   Obstacles to clearing your criminal records
 subquestion: |
-  You might not be eligible from getting your criminal records expunged or sealed if:
+  You might not be eligible for getting your criminal records expunged or sealed if:
   
   * You have any pending criminal charges,
   * You have not completed your sentence, including parole, probation, or court supervision,
@@ -526,7 +526,7 @@ question: |
 subquestion: |
   You said you received a sentence of Qualified Probation.
 fields:
-  - "What kind of Qaulified Probation did you receive?": records[i].qp_type
+  - "What kind of Qualified Probation did you receive?": records[i].qp_type
     choices:
       - Second chance: second
       - "410, 710, 1410, or TASC probation": other_qp
@@ -552,7 +552,7 @@ id: controlled substances status
 question: |
   Controlled substance sentence completion
 subquestion: |
-  You said you received a a sentence under:
+  You said you received a sentence under:
   
   * Section 10 of the Cannabis Control Act,
   * Section 410 of the Illinois Controlled Substances Act,
@@ -1959,7 +1959,7 @@ attachment:
     - "ex_outcome_4": ${ include_ex[4].ex_outcome if include_ex.number() > 4 else "" }
     - "ex_arrest_or_case_number_5": ${ include_ex[5].case_number if include_ex.number() > 5 else "" }
     - "ex_arresting_agency_5": ${ include_ex[5].agency if include_ex.number() > 5 else "" }
-    - "ex_charge_5": ${ include_ex[5].charge.replace("\n", " ").replace("r", " ") if include_ex.number() > 5 else "" }
+    - "ex_charge_5": ${ include_ex[5].charge.replace("\n", " ").replace("\r", " ") if include_ex.number() > 5 else "" }
     - "ex_arrest_date_5": ${ format_date(include_ex[5].arrest_date, format='M/d/yyyy') if include_ex.number() > 5 else "" }
     - "ex_outcome_5": ${ include_ex[5].ex_outcome if include_ex.number() > 5 else "" }
     - "ex_arrest_or_case_number_6": ${ include_ex[6].case_number if include_ex.number() > 6 else "" }
@@ -2689,7 +2689,7 @@ review:
     show if: x.after_arrest == "diversion"
   - Edit: x.qp_type
     button: |
-      **What kind of Qaulified Probation did you receive?**
+      **What kind of Qualified Probation did you receive?**
 
       % if x.qp_type == "second":
       * Second chance
