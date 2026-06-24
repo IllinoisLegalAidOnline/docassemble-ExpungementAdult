@@ -19,6 +19,8 @@ objects:
   - include_ex: DAList.using(object_type=Thing, there_are_any=True)
   - include_se: DAList.using(object_type=Thing, there_are_any=True)
   - include_all: DAList.using(object_type=Thing, there_are_any=True)
+  - cook_preview: DAStaticFile.using(filename="cook_county_and_chicago_examples.pdf")
+  - il_preview: DAStaticFile.using(filename="illinois_not_cook_examples.pdf")
 ---
 code: |
   al_form_type = 'starts_case'
@@ -50,6 +52,7 @@ code: |
     records_info
     more_records_info
   eligible_records
+  immigration_status_info
   whats_next
 
   set_progress(25)  
@@ -96,6 +99,10 @@ code: |
   stuff_to_snapshot['zip'] = showifdef('users[0].address.zip')
 
   stuff_to_snapshot['downloaded_forms'] = showifdef('forms_assembling')
+
+  stuff_to_snapshot['expunged_records'] = showifdef('ex_count')
+
+  stuff_to_snapshot['sealed_records'] = showifdef('se_count')
   
   try:
     stuff_to_snapshot['session_id'] = current_context().session
@@ -141,7 +148,9 @@ subquestion: |
   * Offenses you were charged with, and
   * Outcome of those cases, including any sentences you received.
 
-  To learn more, read ILAO's article about [**expunging or sealing a criminal record**](https://www.illinoislegalaid.org/node/37706).
+  Most criminal records are cleared by **{expungement}** or **{sealing}**.
+  
+  To learn more, see ILAO's information on [**expunging or sealing a criminal record**](https://www.illinoislegalaid.org/node/37706).
 field: sees_nav_bar
 ---
 id: instructions
@@ -170,18 +179,26 @@ content: |
   This is an example of help. Click again to hide.
 ---
 terms:
+  - "expungement": |
+      **Expungement**: Erases or removes records from public view and destroys them, as if the arrest or charge never happened.
+  - "sealing": |
+      **Sealing**: Hides or restricts access to the record, but the record still exists. Law enforcement and employers that require a fingerprint background check can still see it.
   - "disposition": |
       A **disposition** is the final judgment or outcome in a court case. There are no court dispositions for arrests or charges that did not lead to a court case.
 ---
 id: read or skip information
 question: |
-  Do you want to read information now?
+  More information about clearing your criminal record
 subquestion: |
-  If you want to read information about criminal records relief in Illinois, click **Yes**. You can go through four screen screens before making your forms.
+  To get detailed information about clearing your criminal record, you may want to start with ILAO's [**Before filing for expungement or sealing FAQ**](https://www.illinoislegalaid.org/node/185296).
 
-  If you want to read it later, click **No**. You can see them on any Review screen. Just click **:edit: Edit answers** later in the Easy Form.  Also, the information will be included in the instructions you can download when you get your forms.
+  You can also read more on the next four screens of this Easy Form. If you want to read more information now, click **Yes**. You can go through it before making your forms.
+
+  If you want to read more information later, click **No**. It is linked on any Review screen. Just click **:edit: Edit answers** later in the Easy Form.  Also, the information will be included in the instructions you can download when you get your forms.
+
+  **Note:** We recommend you read this information now. If you miss something, you can always come back to it later. 
 fields:
-  - Read information about criminal records now?: read_or_skip
+  - Read more information about criminal records now?: read_or_skip
     datatype: yesnoradio
 ---
 id: expungement info
@@ -200,7 +217,7 @@ subquestion: |
 id: more expungement info
 continue button field: more_expungement_info
 question: |
-  Obstacles to clearing your criminal record
+  Obstacles to clearing your criminal records
 subquestion: |
   You might not be eligible from getting your criminal records expunged or sealed if:
   
@@ -227,8 +244,8 @@ subquestion: |
 
   **Police records**
 
-  * Illinois State Police Statewide Criminal History Transcript: List of most arrests and convictions that happened in Illinois.
-  * Chicago RAP Sheet (Record of Arrests and Prosecutions): List of all arrests, charges, and court case outcomes that happened in Chicago.
+  * An Illinois State Police Statewide Criminal History Transcript lists most arrests and convictions that happened in Illinois.
+  * A Chicago RAP Sheet (Record of Arrests and Prosecutions) lists all arrests, charges, and court case outcomes that happened in Chicago.
 ---
 id: more records info
 continue button field: more_records_info
@@ -241,14 +258,14 @@ subquestion: |
   Records from the **Illinois State Police**: You are allowed to access your entire criminal history information from the Illinois State Police. Although not required, it is the best available source for your statewide criminal record. Please note, there might be discrepancies or missing information.
   ${ collapse_template(isp_records_help) }
 
-  Records from the **Chicago Police Department**: If you were arrested in Chicago, you MUST get your records from the Chicago Police Department. Order a RAP sheet from the Chicago Police Department if you were arrested in Chicago. There will be a fee.
+  Records from the **Chicago Police Department**: If you were arrested in Chicago, you must get your records from the Chicago Police Department. Order a RAP sheet from the Chicago Police Department if you were arrested in Chicago. There will be a fee.
   ${ collapse_template(cpd_records_help) }
 ---
 template: clerk_records_help
 subject: |
   **How to access records from the Circuit Clerk**
 content: |  
-  If you cannot find your court records online, go to the Circuit Clerk’s Office in the county where your case was filed. Ask the Circuit Clerk for the information you need to fill out the forms. This information can be found in your court records.
+  If you cannot find your court records online, go to the Circuit Clerk's Office in the county where your case was filed. Ask the Circuit Clerk for the information you need to fill out the forms. This information can be found in your court records.
   
   You may be able to use the public computer at the Circuit Clerk's office to look up records and print them out or write down the information. Copies are available for a fee. Find your Circuit Clerk's website at: [ilcourts.info/clerks](https://ilcourts.info/clerks).
 ---
@@ -269,7 +286,7 @@ content: |
   * From your local law enforcement agency:[NEWLINE]
     Every law enforcement agency is allowed to provide you this information. Check with your local law enforcement agency to find out costs and times for fingerprinting.
 
-  * From any licensed LiveScan vendor to get your transcript using your fingerprint. Find a LiveScan vendor at the [Illinois Department of Financial and Professional Regulation](https://idfprapps.illinois.gov/licenselookup/fingerprintlist.asp) website.
+  * From any licensed LiveScan vendor to get your transcript using your fingerprint. Find a Fingerprint Vendor at the [Illinois Department of Financial and Professional Regulation](https://idfprapps.illinois.gov/licenselookup/fingerprintlist.asp) website.
 ---
 template: cpd_records_help
 subject: |
@@ -291,43 +308,56 @@ id: eligible records
 question: |
   Eligible records
 subquestion: |
-  This Easy Form can remove eligible police or court records for adult criminal offenses in Illinois. It cannot help with these kinds of records:
+  This Easy Form can remove eligible police or court records for **adult criminal offenses** in Illinois. It cannot help with these kinds of records:
 
-  * Juvenile
-  * Cannabis misdemeanor or Class 4 felony convictions
-  * Eviction records
-  * Minor traffic cases (Class C misdemeanor or below)
+  * Juvenile (see below)
+  * Cannabis misdemeanor or Class 4 felony convictions (see below)
+  * Eviction records (see below)
+  * Minor traffic cases (Class C misdemeanor or lower)
   * Criminal records outside Illinois
   * Federal
 
   You can use our [**Expunge juvenile records**](https://www.illinoislegalaid.org/node/30856) Easy Form to clear eligible offenses from your juvenile record.
   
-  There are different ways to clear cannabis records. Some records qualify for automatic expungement. Others can be vacated and expunged. You can use our [Cannabis expungement](https://www.illinoislegalaid.org/node/173941) Easy Form if you want to expunge cannabis-related convictions. To learn more about cannabis records relief, read ILAO's article about [**clearing your record**](https://www.illinoislegalaid.org/node/165861).
+  Cannabis records can be cleared in different ways. Some records qualify for automatic expungement. Others can be vacated and expunged. To learn more about cannabis records relief, read ILAO's article about [**clearing your record**](https://www.illinoislegalaid.org/node/165861). You can use our [Cannabis expungement](https://www.illinoislegalaid.org/node/173941) Easy Form if you want to expunge cannabis-related convictions.
 
   If you want to remove an eviction from the public record, use our [**Remove eviction from public record**](https://www.illinoislegalaid.org/node/183526) Easy Form.
 continue button field: eligible_records
+---
+id: immigration status info
+continue button field: immigration_status_info
+question: |
+  Immigration status
+subquestion: |
+  Expunging or sealing a criminal record does not erase it for immigration purposes. US immigration authorities can still see sealed or expunged records, and applicants must disclose all arrests, including juvenile offenses.
+
+  **Important:** Filing to expunge or seal records could seriously affect your immigration status. Speak to an immigration lawyer before filing to expunge or seal any criminal or juvenile records. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+
+  To learn more, read ILAO's article, [**Should I clear my criminal record for immigration purposes?**](https://www.illinoislegalaid.org/node/51801)
 ---
 id: whats next
 continue button field: whats_next
 question: |
   After you finish this program
 subquestion: |
-  Once you download your forms, you must file them with the court. This program **does not file** your forms for you.
+  Once you download your forms, you must file them with the court. This program **does not file** your forms for you. To learn about the filing process, see ILAO's [**Court process for expungement or sealing FAQ**](https://www.illinoislegalaid.org/node/185996).
 
   There may be fees to get records from police departments, certified dispositions, or court filing fees. There also may be an Illinois State Police processing fee to process your expungement or sealing court order. The Circuit Clerk collects this fee with the filing fee.
 
   **Note:** If you cannot afford the Circuit Clerk filing fee or the Illinois State Police processing fee, you can ask the court to waive those fees. You can use ILAO's [**Fee waiver Easy Form**](https://www.illinoislegalaid.org/node/30831) to make forms to ask the court to file for free or at a reduced cost.
 
   After you file the *${ form_name }* and get a court date, you may need to go to court for a court date in front of a judge. Some counties schedule a court date right away, but others will only schedule a court date if there is an objection to your *Request*.
+
+  Finally, the court will decide on your *Request*. To learn about what happens after the court makes its decision, read ILAO's [**After your expungement or sealing case is decided FAQ**](https://www.illinoislegalaid.org/node/186001).
   
-  To learn more about what's next, read the instructions you can download at the end of this program.
+  You can read the instructions you can download at the end of this program to learn more about what's next and how to get additional help.
 ---
 id: next steps
 continue button field: next_steps
 question: |
   Next steps
 subquestion: |
-  After you download your forms, you must file them with the court. This program **does not file** your forms for you.
+  After you download your forms, you must file them with the court. This program **does not file** your forms for you. To learn about the filing process, see ILAO's [**Court process for expungement or sealing FAQ**](https://www.illinoislegalaid.org/node/185996).
 
   There may be fees to get records from police departments, certified dispositions, or court filing fees. There also may be an Illinois State Police processing fee to process your expungement or sealing court order. The Circuit Clerk collects this fee with the filing fee.
 
@@ -335,7 +365,9 @@ subquestion: |
 
   After you file the *${ form_name }* and get a court date, you may need to go to court for a court date in front of a judge. Some counties schedule a court date right away, but others will only schedule a court date if there is an objection to your *Request*.
   
-  To learn more about what's next, read the instructions you can download on an upcoming screen.
+  Finally, the court will decide on your *Request*. To learn about what happens after the court makes its decision, read ILAO's [**After your expungement or sealing case is decided FAQ**](https://www.illinoislegalaid.org/node/186001).
+  
+  You can read the instructions you can download on an upcoming screen to learn more about what's next and how to get additional help.
 ---
 id: filing county
 question: |
@@ -355,26 +387,38 @@ id: info about first record
 question: |
   Information about the first record
 subquestion: |
-  TODO - Add where to find this info
+  ${ collapse_template(where_to_find_records_help) } 
 fields:
   - Arrest date: records[0].arrest_date
     datatype: ThreePartsDate
+    alMin: ${ today().minus(years=125) }    
     alMax: ${ today().format("yyyy-MM-dd") }
-  - Was this for a minor traffic offense (Class C misdmeanor)?: records[0].traffic
+  - Was this for a minor traffic offense?: records[0].traffic
     datatype: yesnoradio
   - note: |
       ${ collapse_template(minor_traffic_help) }  
+---
+template: where_to_find_records_help
+subject: |
+  **Where to find this information**
+content: |  
+  Your court records or RAP sheet should have this information. See where to find it on these examples:
+
+  * [**Cook County court disposition and a Chicago Police RAP sheet :external-link:**](${ cook_preview.url_for() })
+  
+  * [**Court record or docket sheet (outside of Cook County) and an Illinois State Police RAP sheet :external-link:**](${ il_preview.url_for() })
 ---
 id: info about other records
 question: |
   Information about a ${ ordinal(i) } record
 subquestion: |
-  TODO - Add where to find this info
+  ${ collapse_template(where_to_find_records_help) } 
 fields:
   - Arrest date: records[i].arrest_date
     datatype: ThreePartsDate
+    alMin: ${ today().minus(years=125) }    
     alMax: ${ today().format("yyyy-MM-dd") }    
-  - Was this for a minor traffic offense (Class C misdmeanor or lower)?: records[i].traffic
+  - Was this for a minor traffic offense?: records[i].traffic
     datatype: yesnoradio
   - note: |
       ${ collapse_template(minor_traffic_help) }  
@@ -406,17 +450,6 @@ fields:
   - "Any other records?": records.there_is_another
     datatype: yesnoradio
 ---
-id: result in conviction
-question: |
-  Did the ${records[i].arrest_date} arrest result in a conviction? 
-subquestion: |
-  Select **Yes** if...
-
-  Select **No** if...
-fields:
-  - Conviction?: records[i].conviction
-    datatype: yesnoradio
----
 id: conviction special status
 question: |
   Do any of these apply to the conviction from the ${records[i].arrest_date} arrest? 
@@ -440,7 +473,6 @@ fields:
   - "None of these apply.": records[i].reversed_none
     datatype: yesnowide
     disable others: True
-
 ---
 id: rwc
 question: |
@@ -533,8 +565,7 @@ fields:
     datatype: yesnoradio
     show if:
       variable: records[i].drugs_complete
-      is: True
-      
+      is: True 
 ---
 id: supervision exclusions
 question: |
@@ -770,15 +801,6 @@ code: |
       records[i].charge
 
   records[i].complete = True
-
-# 
-#  if records[i].ex_eligible or records[i].se_eligible:
-#    if records[i].include != "not include":
-#      records[i].case_number
-#      records[i].charge
-#  else:
-#    records[i].not_eligible
-
 ---
 code: |
   def eligibility_check( record ):
@@ -1051,10 +1073,6 @@ code: |
     relief.append( { "not include" : "No, I do not want to include these records." })
     return relief
 ---
-
-
-# new combined eligible and not eligible page - testing
----
 id: eligibility report
 generic object: DAList
 continue button field: x[i].eligibility
@@ -1083,10 +1101,12 @@ subquestion: |
   % endif
   % endif
   **Important:** You should only file to expunge or seal records after any waiting periods.
-
-  TODO - add collapse template that explains diff between expugement & sealing
   % else:  
   Based on your answers, records from the ${x[i].arrest_date} arrest are not eligible for expungement or sealing.
+  % endif
+  % if x[i].ex_eligible and x[i].se_eligible:
+
+  ${ collapse_template(exp_or_seal_help) }
   % endif
 fields:
   - Include these records in your *Request*?: x[i].include
@@ -1096,8 +1116,20 @@ fields:
     show if:
       code: |
         records[i].ex_eligible or records[i].se_eligible
+---
+template: exp_or_seal_help
+subject: |
+  **What should I do if the records are eligible for both expungement and sealing?**
+content: |
+  Here's the difference between expungement and sealing:
+  
+  * **Expungement**: Erases or removes records from public view and destroys them, as if the arrest or charge never happened.
 
-
+  * **Sealing**: Hides or restricts access to the record, but the record still exists. Law enforcement and employers that require a fingerprint background check can still see it.
+  
+  If records following an arrest are eligible for both expungement and sealing, it is generally better to expunge since it fully removes the records. Sometimes you can seal certain records sooner than when you can expunge them. Asking the court to seal now might give some relief until you ask the court to expunge later.
+  
+  Talk to a lawyer if you are unsure about what to do. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
 ---
 id: case or arrest number
 generic object: DAList
@@ -1105,11 +1137,11 @@ continue button field: x[i].case_number
 question: |
   Case or arrest number for the ${x[i].arrest_date} arrest
 subquestion: |
-  If you have a case number, enter the case number. If you do not have a case number, then enter the arrest number.
+  **Important:** If you have a case number, enter the case number. If you do not have a case number, then enter the arrest number.
 
   This can be a municipal ordinance code case number or a warrant arrest number.
 
-  TODO - add help on where to find this
+  ${ collapse_template(where_to_find_records_help) }
 fields:
   - Case or arrest number: x[i].case_number
     maxlength: 20
@@ -1121,8 +1153,8 @@ continue button field: x[i].charge
 question: |
   More about the ${x[i].arrest_date} arrest
 subquestion: |
-  TODO - Add where to find this info
-
+  ${ collapse_template(where_to_find_records_help) }
+  
   % if x[i].include == "seal": 
   **Note:** If you received Supervision or Qualified Probation and did not complete it, list the outcome as a conviction. Select Misdmeanor Conviction or Felony Conviction depending on your situation.
   % endif
@@ -1302,7 +1334,6 @@ code: |
     })
     sealing_outcomes.gathered = True
     return
-
 ---
 id: user name
 sets:
@@ -1335,6 +1366,7 @@ question: |
 fields:
   - Birthdate: users[0].birthdate
     datatype: BirthDate
+    alMin: ${ today().minus(years=125) }    
     alMax: ${ today().format("yyyy-MM-dd") }
 ---
 id: petitioner race
@@ -1505,6 +1537,8 @@ code: |
   if include_ex.number() > 0:
     for record in include_ex:
 
+      record.ex_outcome
+
       if record.rwc:
         ex_rwc_any = True
         if record.traffic:
@@ -1575,6 +1609,8 @@ code: |
 
   if include_se.number() > 0:
     for record in include_se:
+
+      record.se_outcome
   
       if record.rwc:
         continue
