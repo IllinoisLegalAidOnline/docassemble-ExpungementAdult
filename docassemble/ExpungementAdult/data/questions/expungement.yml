@@ -1132,7 +1132,7 @@ content: |
 
   * **Sealing**: Hides or restricts access to the record, but the record still exists. Law enforcement and employers that require a fingerprint background check can still see it.
   
-  If records following an arrest are eligible for both expungement and sealing, it is generally better to expunge since it fully removes the records. Sometimes you can seal certain records sooner than when you can expunge them. Asking the court to seal now might give some relief until you ask the court to expunge later.
+  If records following an arrest are eligible for both expungement and sealing right now, it is generally better to expunge since it fully removes the records. Sometimes you can seal certain records sooner than when you can expunge them. If you have to wait before your record can be expunged, asking the court to seal now might give some relief until you ask the court to expunge later.
   
   Talk to a lawyer if you are unsure about what to do. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
 ---
@@ -1344,8 +1344,6 @@ sets:
   - users[0].name.first
 question:  |
   What is your name?
-subquestion: |
-  **Note:** If you want the court to send the order to another person, you can enter it on another screen. This should be your name.
 fields:
   - code: |
       users[0].name_fields()
