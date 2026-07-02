@@ -1173,7 +1173,7 @@ fields:
     maxlength: 100
     help: |
       This is the name of the offense you were charged with, such as "retail theft" or "cannabis possession."
-  - What was the outcome of the arrest?: x[i].ex_outcome
+  - "What was the outcome of the arrest?[NEWLINE][NEWLINE]**Note:** You may have entered this already. The outcome is used on a different part of the forms.": x[i].ex_outcome
     datatype: radio
     choices:
       - "**RWC** - Released Without Charge": RWC
@@ -1184,6 +1184,8 @@ fields:
       - "**RV** - Guilty / Conviction Reversed or Vacated": RV
       - "**P** - Guilty / Conviction with a Pardon from the Governor": P
       - "**CE** - Guilty / Conviction with a Certificate of Eligibility for Expungement from Prisoner Review Board": CE
+      - "**Other** - Select this if the outcome is not listed above.": Other
+      - "**Not sure** - Select this if you aren't sure which outcome to select.": Not sure
     show if: 
       code: |
         records[i].include == "expunge"
@@ -1192,13 +1194,15 @@ fields:
     show if: 
       code: |
         records[i].include == "expunge"         
-  - What was the outcome of the arrest?: x[i].se_outcome
+  - "What was the outcome of the arrest?[NEWLINE][NEWLINE]**Note:** You may have entered this already. The outcome is used on a different part of the forms.": x[i].se_outcome
     datatype: radio
     choices:
       - "**MC** - Misdemeanor Conviction - Guilty / Sentenced to: IDOC (Illinois Department of Corrections) or County Departments of Corrections (jail), Conditional Discharge, Probation (not Qualified Probation), or Fine (without court supervision)": MC
       - "**FC** - Felony Conviction - Guilty / Sentenced to: IDOC (Illinois Department of Corrections) or County Departments of Corrections (jail), Conditional Discharge, Probation (not Qualified Probation), or Fine (without court supervision)": FC
       - "**CE** - Guilty / Conviction with a Certificate of Eligibility for Sealing from PRB": CE
       - "**QP** - Qualified Probation, completed successfully": QP
+      - "**Other** - Select this if the outcome is not listed above.": Other
+      - "**Not sure** - Select this if you aren't sure which outcome to select.": Not sure
     show if: 
       code: |
         records[i].include == "seal"      
