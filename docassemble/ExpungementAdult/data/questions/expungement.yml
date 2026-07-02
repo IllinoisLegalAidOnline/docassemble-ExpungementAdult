@@ -908,9 +908,11 @@ code: |
   
     if record.after_arrest == "qualified_probation":
       if record.qp_complete:
+        record.ex_eligible = True
         if record.qp_complete_plus_5:
-          record.ex_eligible = True
-          record.ex_when = "5 qp"
+          record.ex_when = "5 qp now"
+        else:
+          record.ex_when = "5 qp"  
         record.se_eligible = True
         record.se_when = "2"
         if record.qp_type == "second":
@@ -941,7 +943,7 @@ code: |
         record.ex_eligible = True
         record.ex_when = "5"
         if record.drugs_complete_plus_2:
-          record.se_when = "2"        
+          record.se_when = "2 drugs now"        
         else:
           if record.is_felony:
             record.se_when = "3"
@@ -973,40 +975,29 @@ code: |
         if record.supervision_needs_5:
           if record.supervision_complete_plus_5:
             record.ex_eligible = True
-            record.ex_when = "5 sup"
+            record.ex_when = "5 sup now"
+            record.se_eligible = True
+            record.se_when = "2"  
+            return
+          else: 
+            record.ex_eligible = True
+            record.ex_when = "5 sup" 
+            record.se_eligible = True
+            record.se_when = "2"  
+            return  
+        else:
+          if record.supervision_complete_plus_2:
+            record.ex_eligible = True
+            record.ex_when = "2 sup now"
             record.se_eligible = True
             record.se_when = "2"  
             return
           else:
-            record.se_eligible = True
-            record.se_when = "2"  
-            return
-        else:
-          if record.supervision_complete_plus_2:
             record.ex_eligible = True
             record.ex_when = "2 sup"
             record.se_eligible = True
             record.se_when = "2"  
             return
-          else:
-            record.se_eligible = True
-            record.se_when = "2"  
-            return
-  
-          if record.supervision_needs_2:
-            if record.supervision_complete_plus_2:
-              record.ex_eligible = True
-              record.ex_when = "2 sup"
-              record.se_eligible = True
-              if record.is_felony:
-                record.se_when = "3"
-              else:
-                record.se_when = "2"  
-              return
-            else:
-              record.se_eligible = True
-              record.se_when = "2"
-              return
   
       # check for supervision expungement exclusions: dui, sex offense v minor, or reckless driving
       if record.supervision_exclusion == "dui" or record.supervision_exclusion == "minor":
@@ -1043,21 +1034,29 @@ code: |
 code: |
   def format_waiting_period( period ):
     if period == "now":
-      return "right now."
+      return "**right now**."
     elif period == "last":
       return "after you complete your **{last sentence}**."
     elif period == "2":
       return "**two years** after you complete your **{last sentence}**."
     elif period == "2 sup":
       return "**two years** after you successfully complete your supervision, and two years must pass since the end of the sentence for all other supervisions."
+    elif period == "2 sup now":
+      return "**right now**, based on your answer that it has been at least two years since your successfully completed your supervision."
+    elif period == "2 drugs now":
+      return "**right now**, based on your answer that it has been at least two years since you completed your **{last sentence}**."
     elif period == "3":
       return "**three years** after you complete your **{last sentence}**."
     elif period == "5":
       return "**five years** after you complete your **{last sentence}**."
     elif period == "5 sup":
       return "**five years** after you successfully complete your supervision."
+    elif period == "5 sup now":
+      return "**right now**, based on your answer that it has been at least five years since your successfully completed your supervision."
     elif period == "5 qp":
       return "**five years** after your Qualified Probation ended successfully."
+    elif period == "5 qp now":
+      return "**right now**, based on your answer that it has been at least five years since your Qualified Probation ended successfully."
     elif period == "61":
       return "after you successfully complete your problem-solving court or diversion program within 61 days of filing your expungement request."
     else:
