@@ -534,8 +534,7 @@ fields:
   - "What kind of Qualified Probation did you receive?": records[i].qp_type
     choices:
       - Second chance: second
-      - "410, 710, 1410, or TASC probation": other_qp
-      - Another type of Qualified Probation: other                                         
+      - "Another type of Qualified Probation such as 410, 710, 1410, or TASC probation": other_qp
     datatype: radio
   - Did you successfully complete your Qualified Probation?: records[i].qp_complete
     datatype: yesnoradio
@@ -821,15 +820,11 @@ code: |
     if record.rwc:
       record.ex_eligible = True
       record.ex_when = "now"
-      record.se_eligible = True
-      record.se_when = "now"
       return 
   
     if record.after_arrest == "dismissed":
       record.ex_eligible = True
       record.ex_when = "now"
-      record.se_eligible = True
-      record.se_when = "now"
       return  
   
     if record.after_arrest == "conviction":
@@ -890,20 +885,10 @@ code: |
       elif record.diversion_status == "complete":
         record.ex_eligible = True
         record.ex_when = "now"
-        record.se_eligible = True
-        if record.is_felony:
-          record.se_when = "3"
-        else:
-          record.se_when = "2"  
         return
       else: # will complete diversion within 61 days
         record.ex_eligible = True
         record.ex_when = "61"
-        record.se_eligible = True
-        if record.is_felony:
-          record.se_when = "3"
-        else:
-          record.se_when = "2"  
         return
   
     if record.after_arrest == "qualified_probation":
@@ -1104,6 +1089,11 @@ subquestion: |
   % endif
   % endif
   % endif
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">Definitions: Expungement and sealing</h6>
+    <p><b>Expungement:</b> Erases or removes records from public view and destroys them, as if the arrest or charge never happened.</p>
+    <p><b>Sealing:</b> Hides or restricts access to the record, but the record still exists. Law enforcement and employers that require a fingerprint background check can still see it.</p>
+  </div>
   **Important:** You should only file to expunge or seal records after any waiting periods.
   % else:  
   Based on your answers, records from the ${x[i].arrest_date} arrest are not eligible for expungement or sealing.
@@ -1125,12 +1115,6 @@ template: exp_or_seal_help
 subject: |
   **What should I do if the records are eligible for both expungement and sealing?**
 content: |
-  Here's the difference between expungement and sealing:
-  
-  * **Expungement**: Erases or removes records from public view and destroys them, as if the arrest or charge never happened.
-
-  * **Sealing**: Hides or restricts access to the record, but the record still exists. Law enforcement and employers that require a fingerprint background check can still see it.
-  
   If records following an arrest are eligible for both expungement and sealing right now, it is generally better to expunge since it fully removes the records. Sometimes you can seal certain records sooner than when you can expunge them. If you have to wait before your record can be expunged, asking the court to seal now might give some relief until you ask the court to expunge later.
   
   Talk to a lawyer if you are unsure about what to do. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
@@ -1167,10 +1151,10 @@ fields:
     maxlength: 50
     help: |
       This is the police department that arrested you.
-  - Charge (List all charges from this arrest): x[i].charge
+  - Charge: x[i].charge
     input type: area
-    rows: 3
-    maxlength: 100
+    rows: 2
+    maxlength: 80
     help: |
       This is the name of the offense you were charged with, such as "retail theft" or "cannabis possession."
   - "What was the outcome of the arrest?[NEWLINE][NEWLINE]**Note:** You may have entered this already. The outcome is used on a different part of the forms.": x[i].ex_outcome
@@ -1184,8 +1168,6 @@ fields:
       - "**RV** - Guilty / Conviction Reversed or Vacated": RV
       - "**P** - Guilty / Conviction with a Pardon from the Governor": P
       - "**CE** - Guilty / Conviction with a Certificate of Eligibility for Expungement from Prisoner Review Board": CE
-      - "**Other** - Select this if the outcome is not listed above.": Other
-      - "**Not sure** - Select this if you aren't sure which outcome to select.": Not sure
     show if: 
       code: |
         records[i].include == "expunge"
@@ -1201,8 +1183,6 @@ fields:
       - "**FC** - Felony Conviction - Guilty / Sentenced to: IDOC (Illinois Department of Corrections) or County Departments of Corrections (jail), Conditional Discharge, Probation (not Qualified Probation), or Fine (without court supervision)": FC
       - "**CE** - Guilty / Conviction with a Certificate of Eligibility for Sealing from PRB": CE
       - "**QP** - Qualified Probation, completed successfully": QP
-      - "**Other** - Select this if the outcome is not listed above.": Other
-      - "**Not sure** - Select this if you aren't sure which outcome to select.": Not sure
     show if: 
       code: |
         records[i].include == "seal"      
@@ -2814,10 +2794,8 @@ review:
 
       % if x.qp_type == "second":
       * Second chance
-      % elif x.qp_type == "other_qp":
-      * 410, 710, 1410, or TASC probation
       % else:
-      * Another type of Qualified Probation
+      * Another type of Qualified Probation such as 410, 710, 1410, or TASC probation
       % endif
     show if: x.after_arrest == "qualified_probation"
   - Edit: x.qp_complete
@@ -3033,7 +3011,7 @@ review:
 
       **Arresting agency:** ${ x.agency }
 
-      **Charge(s):** ${ x.charge }
+      **Charge:** ${ x.charge }
 
       **Outcome code:**
       % if x.include == "expunge":
