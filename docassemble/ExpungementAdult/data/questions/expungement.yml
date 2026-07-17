@@ -995,13 +995,13 @@ code: |
             if record.reckless_now_25:
               record.ex_eligible = True
               record.ex_when = "now"
-              record.se_eligible = True  
-              record.se_when = "2"  
               return
         else: # will catch supervision for reckless driving but over 25
-          if record.supervision_complete_plus_2:
-            record.ex_eligible = True
-            record.ex_when = "2 sup"
+          if record.supervision_complete:
+            if record.supervision_complete_plus_2:
+              record.ex_eligible = True
+              record.ex_when = "2 sup"
+              return
         record.se_eligible = True  
         record.se_when = "2"  
         return
@@ -1115,7 +1115,7 @@ template: exp_or_seal_help
 subject: |
   **What should I do if the records are eligible for both expungement and sealing?**
 content: |
-  If records following an arrest are eligible for both expungement and sealing right now, it is generally better to expunge since it fully removes the records. Sometimes you can seal certain records sooner than when you can expunge them. If you have to wait before your record can be expunged, asking the court to seal now might give some relief until you ask the court to expunge later.
+  If records following an arrest are eligible for both expungement and sealing, it is generally better to expunge since it fully removes the records. Sometimes you can seal certain records sooner than when you can expunge them. If you have to wait before your record can be expunged, asking the court to seal now might give some relief until you ask the court to expunge later.
   
   Talk to a lawyer if you are unsure about what to do. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
 ---
@@ -1157,7 +1157,7 @@ fields:
     maxlength: 80
     help: |
       This is the name of the offense you were charged with, such as "retail theft" or "cannabis possession."
-  - "What was the outcome of the arrest?[NEWLINE][NEWLINE]**Note:** You may have entered this already. The outcome is used on a different part of the forms.": x[i].ex_outcome
+  - "What was the outcome of the arrest?[NEWLINE][NEWLINE]**Note:** You may have entered this already. The outcome code is used on a different part of the forms.": x[i].ex_outcome
     datatype: radio
     choices:
       - "**RWC** - Released Without Charge": RWC
@@ -1176,7 +1176,7 @@ fields:
     show if: 
       code: |
         records[i].include == "expunge"         
-  - "What was the outcome of the arrest?[NEWLINE][NEWLINE]**Note:** You may have entered this already. The outcome is used on a different part of the forms.": x[i].se_outcome
+  - "What was the outcome of the arrest?[NEWLINE][NEWLINE]**Note:** You may have entered this already. The outcome code is used on a different part of the forms.": x[i].se_outcome
     datatype: radio
     choices:
       - "**MC** - Misdemeanor Conviction - Guilty / Sentenced to: IDOC (Illinois Department of Corrections) or County Departments of Corrections (jail), Conditional Discharge, Probation (not Qualified Probation), or Fine (without court supervision)": MC
