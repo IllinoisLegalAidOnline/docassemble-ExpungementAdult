@@ -896,8 +896,9 @@ code: |
         record.ex_eligible = True
         if record.qp_complete_plus_5:
           record.ex_when = "5 qp now"
+          return
         else:
-          record.ex_when = "5 qp"  
+          record.ex_when = "5 qp"
         record.se_eligible = True
         record.se_when = "2"
         if record.qp_type == "second":
@@ -1672,12 +1673,31 @@ code: |
               if record.reckless_now_25_conviction:
                 se_reckless_driving = True
                 continue
-  
+
+        # -----------moved inside conviction-----------
+        if record.is_felony:
+          if record.discharge_type == "complete":
+            se_felony_conviction_2 = True
+            continue
+          else:  
+            if ed_program_complete:
+              se_education_goal = True
+              continue
+            if record.discharge_type == "revoked":
+              se_felony_probation_revoked_3 = True
+              continue
+            else:
+              se_felony_jail_3 = True
+        else:
+          se_misdemeanor_2 = True
+    
+        # -----------moved inside conviction-----------
+
       if defined('record.human_trafficking'):
         if record.human_trafficking:
           se_human_trafficking = True
           continue
-
+  
       if record.after_arrest == "diversion":  
         continue
   
@@ -1707,20 +1727,6 @@ code: |
           if record.drugs_complete_plus_2:
             se_drugs_complete_2 = True
           continue
-  
-      if record.is_felony:
-        if record.discharge_type == "complete":
-          se_felony_conviction_2 = True
-        else:  
-          if ed_program_complete:
-            se_education_goal = True
-            continue
-          if record.discharge_type == "revoked":
-            se_felony_probation_revoked_3 = True
-          else:
-            se_felony_jail_3 = True
-      else:
-        se_misdemeanor_2 = True
   
   build_case_lists = True
 ---
