@@ -1551,9 +1551,9 @@ code: |
   temp_list_ex = []
   temp_list_se = []
   for record in records:
-    if record.include == "expunge":
+    if getattr(record, 'include', False) == "expunge":
       temp_list_ex.append(record)
-    elif record.include == "seal":
+    elif getattr(record, 'include', False) == "seal":
       temp_list_se.append(record)
   include_ex = DAList("include_ex", elements = temp_list_ex)
   include_se = DAList("include_se", elements = temp_list_se)
