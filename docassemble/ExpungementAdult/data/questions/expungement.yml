@@ -63,7 +63,9 @@ code: |
   build_sealing_outcomes()
   records.gather()
   #eligibility_summary
-
+  if not any_eligible_records:
+    no_eligible_records
+  
   set_progress(90)
   nav.set_section('section_user')
   users[0].name.first
@@ -311,7 +313,7 @@ content: |
 ---
 id: eligible records
 question: |
-  Eligible records
+  Dealing with different kinds of records
 subquestion: |
   This Easy Form can remove eligible police or court records for **adult criminal offenses** in Illinois. It cannot help with these kinds of records:
 
@@ -612,11 +614,11 @@ fields:
       Special rules apply when asking to expunge or seal these offenses:
 
       * Domestic Battery
-      * Criminal Sexual Abuse
-      * Driving without Insurance
-      * Driving with Registration Suspended for Non-Insurance
-      * Display of False Insurance Card
-      * Scrap Processors to Keep Records    
+      * Criminal Sexual Abuse (victim was 18 or older)
+      * Driving without insurance
+      * Driving when registration is suspended for Non-Insurance
+      * Display of false insurance Card
+      * Scrap processor's failure to keep records
   - Was your supervision for any of these offenses?: records[i].supervision_needs_5
     datatype: yesnoradio
   - Did you successfully complete your supervision?: records[i].supervision_complete
@@ -635,12 +637,24 @@ question: |
   What type of offense were you charged with on ${ records[i].arrest_date }?
 subquestion: |
   This can affect how long you have to wait before you are eligible for criminal records relief.
+
+  ${ collapse_template(misdemeanor_or_felony_help) }
 fields:
   - Offense type: records[i].is_felony
     datatype: radio
     choices:
     - "Misdemeanor or an ordinance violation": False
     - "Felony": True
+---
+template: misdemeanor_or_felony_help
+subject: |
+  **How to tell if the offense is a misdemeanor or a felony**
+content: |  
+  Your court records or RAP sheet should have this information. Look for an "M" for a misdemanor or an "F" for a felony. It is usually listed under Type, but sometimes it is put in Class or is just unlabeled.
+  
+  Misdemeanors classes are A, B, or C.
+  
+  Felony classes are 1 through 4, X, and First Degree Murder.
 ---
 id: reckless driving sealing exclusion
 question: |
@@ -1120,6 +1134,20 @@ content: |
   
   Talk to a lawyer if you are unsure about what to do. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
 ---
+id: no eligible records for forms
+event: no_eligible_records
+question: |
+  Sorry
+subquestion: |
+  You have not entered information about any eligible records you want to expunge or seal.
+
+  Click **Back** or **:edit: Edit answers** if you made a mistake. You can click **Restart** if you want to start over. 
+  
+  You may want to talk with a lawyer to discuss your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+buttons:
+  - Exit: exit
+  - Restart: restart
+---
 id: case or arrest number
 generic object: DAList
 continue button field: x[i].case_number
@@ -1164,7 +1192,7 @@ fields:
       - "**RWC** - Released Without Charge": RWC
       - "**DA** - Dismissal or Acquittal, Finding of No Probable Cause (FNPC), Found Not Guilty (FNG), Nolle Prosequi, Non-Suit, Stricken Off with Leave to Reinstate (SOL)": DA
       - "**S** - Court Supervision, Completed successfully": S
-      - "**QP** - First Offender Drug Probation or Qualified Probation, Completed successfully Completed": QP
+      - "**QP** - First Offender Drug Probation or Qualified Probation, Completed successfully": QP
       - "**FI** - Found Factually Innocent": FI
       - "**RV** - Guilty / Conviction Reversed or Vacated": RV
       - "**P** - Guilty / Conviction with a Pardon from the Governor": P
@@ -1545,6 +1573,10 @@ fields:
 terms:
   - "e-signature": |
       An e-signature is an electronic signature. It is a digital version of a signature that has the same effect as a hand-written signature.
+---
+reconsider: True
+code: |
+  any_eligible_records = any(getattr(record, 'include', False) in ("expunge", "seal") for record in records)
 ---
 reconsider: True
 code: |
@@ -2849,11 +2881,11 @@ review:
       ${word(yesno(x.supervision_needs_5))}
 
       * Domestic Battery
-      * Criminal Sexual Abuse
-      * Driving without Insurance
-      * Driving with Registration Suspended for Non-Insurance
-      * Display of False Insurance Card
-      * Scrap Processors to Keep Records
+      * Criminal Sexual Abuse (victim was 18 or older)
+      * Driving without insurance
+      * Driving when registration is suspended for Non-Insurance
+      * Display of false insurance Card
+      * Scrap processor's failure to keep records
     show if: x.after_arrest == "supervision" and x.supervision_exclusion == "none"
   - Edit: x.supervision_complete
     button: |
