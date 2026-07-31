@@ -1184,7 +1184,7 @@ subquestion: |
 
   * Received Supervision,
   * Received Qualified Probation, or
-  * Participated in problem-solving court, pre-plea diversion, or post-plea diversion program
+  * Participated in problem-solving court, pre-plea diversion, or a post-plea diversion program
 
   and **did not complete** it, list the outcome as a **conviction**. Select **MC** - Misdmeanor Conviction or **FC** - Felony Conviction depending on your situation.
   % endif
