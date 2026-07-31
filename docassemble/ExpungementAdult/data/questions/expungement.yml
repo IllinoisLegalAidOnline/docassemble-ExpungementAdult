@@ -1178,10 +1178,20 @@ subquestion: |
   ${ collapse_template(where_to_find_records_help) }
   
     If you need help understanding your court records or RAP sheet, see ILAO's article about [abbreviations on your RAP sheet](https://www.illinoislegalaid.org/node/37641).
-  % if x[i].include == "seal":
+  % if x[i].include == "seal" and (getattr(x[i], 'after_arrest', False) == "diversion" or getattr(x[i], 'after_arrest', False) == "qualified_probation" or getattr(x[i], 'after_arrest', False) == "supervision"):
   
-  **Note:** If you received Supervision or Qualified Probation and did not complete it, list the outcome as a conviction. Select Misdmeanor Conviction or Felony Conviction depending on your situation.
+  **Note:** If you:
+
+  * Received Supervision,
+  * Received Qualified Probation, or
+  * Participated in problem-solving court, pre-plea diversion, or a post-plea diversion program
+
+  and **did not complete** it, list the outcome as a **conviction**. Select **MC** - Misdmeanor Conviction or **FC** - Felony Conviction depending on your situation.
   % endif
+  % if x[i].include == "expunge" and getattr(x[i], 'after_arrest', False) == "diversion":
+  
+  **Note:** If you successfully completed problem-solving court, pre-plea diversion, or a post-plea diversion program, list the outcome as **DA** - Dismissal or Acquittal. The case must be **dismissed** before it can be expunged.
+  % endif  
 fields:
   - Arresting agency: x[i].agency
     maxlength: 50
