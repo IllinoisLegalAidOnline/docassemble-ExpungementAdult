@@ -1087,8 +1087,14 @@ id: eligibility report
 generic object: DAList
 continue button field: x[i].eligibility
 question: |
-  % if x[i].ex_eligible or x[i].se_eligible:
-  Do you want to include records from the ${x[i].arrest_date} arrest in your *Request*?
+  % if x[i].ex_eligible and x[i].se_eligible:
+  Records from the ${x[i].arrest_date} arrest may be eligible for expungement or sealing
+  % elif x[i].ex_eligible or x[i].se_eligible:
+  % if x[i].ex_eligible:
+  Records from the ${x[i].arrest_date} arrest may be eligible for expungement
+  % elif x[i].se_eligible:
+  Records from the ${x[i].arrest_date} arrest may be eligible for sealing
+  % endif  
   % else:
   Records from the ${x[i].arrest_date} arrest not eligible
   % endif
@@ -1097,11 +1103,11 @@ subquestion: |
   Based on your answers, records from the ${x[i].arrest_date} arrest may be eligible for:
 
   % if x[i].ex_eligible:
-    * Expungement, ${format_waiting_period ( x[i].ex_when ) }
+    * **Expungement**, ${format_waiting_period ( x[i].ex_when ) }
   % endif
   
   % if x[i].se_eligible:
-    * Sealing, ${format_waiting_period ( x[i].se_when ) }
+    * **Sealing**, ${format_waiting_period ( x[i].se_when ) }
 
   % if defined('ed_program_complete'):
   % if ed_program_complete:
@@ -1124,7 +1130,7 @@ subquestion: |
   ${ collapse_template(exp_or_seal_help) }
   % endif
 fields:
-  - Include these records in your *Request*?: x[i].include
+  - Do you want to include these records in your *Request*?: x[i].include
     datatype: radio
     code: |
       relief_list( records[i] )
@@ -1145,7 +1151,7 @@ event: no_eligible_records
 question: |
   Sorry
 subquestion: |
-  You have not entered information about any eligible records you want to expunge or seal.
+  You have not told us about any records to put in a *Request to Expunge and/or Seal Criminal Records*. Either none of the records are eligible or you decided not to include them in a *Request*.
 
   Click **Back** or **:edit: Edit answers** if you made a mistake. You can click **Restart** if you want to start over. 
   
