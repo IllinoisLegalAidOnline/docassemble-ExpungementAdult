@@ -110,6 +110,8 @@ code: |
   stuff_to_snapshot['expunged_records'] = showifdef('ex_count')
 
   stuff_to_snapshot['sealed_records'] = showifdef('se_count')
+
+  stuff_to_snapshot['read_all_info'] = showifdef('read_or_skip')
   
   try:
     stuff_to_snapshot['session_id'] = current_context().session
@@ -336,11 +338,11 @@ continue button field: immigration_status_info
 question: |
   Immigration status
 subquestion: |
-  Expunging or sealing a criminal record does not erase it for immigration purposes. US immigration authorities can still see sealed or expunged records, and applicants must disclose all arrests, including juvenile offenses.
+  Expunging or sealing a criminal record does not erase it for immigration purposes. US immigration authorities can still see expunged or sealed records. Applicants for immigration benefits may need to disclose criminal records to immigration, including juvenile offenses.
 
-  **Important:** Filing to expunge or seal records could seriously affect your immigration status. Speak to an immigration lawyer before filing to expunge or seal any criminal or juvenile records. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+  **Important:** Expunging or sealing records may make it more difficult for someone to provide them to immigration. Speak to an immigration lawyer before filing to expunge or seal any criminal or juvenile records. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
 
-  To learn more, read ILAO's article, [**Should I clear my criminal record for immigration purposes?**](https://www.illinoislegalaid.org/node/51801)
+  To learn more, see ILAO's [**Expunging or sealing criminal records for immigration purposes**](https://www.illinoislegalaid.org/node/51801) FAQ.
 ---
 id: whats next
 continue button field: whats_next
@@ -413,9 +415,11 @@ subject: |
 content: |  
   Your court records or RAP sheet should have this information. See where to find it on these examples:
 
-  * [**Cook County court disposition and a Chicago Police RAP sheet :external-link:**](${ cook_preview.url_for() })
+  * [**Cook County court disposition and a Chicago Police RAP sheet**](${ cook_preview.url_for() })
   
-  * [**Court record or docket sheet (outside of Cook County) and an Illinois State Police RAP sheet :external-link:**](${ il_preview.url_for() })
+  * [**Court record or docket sheet (outside of Cook County) and an Illinois State Police RAP sheet**](${ il_preview.url_for() })
+  
+  **Note:** These examples will open in a new tab or window.
 ---
 id: info about other records
 question: |
