@@ -1526,18 +1526,21 @@ content: |
 ---
 id: add order recipient
 question: |
-  Do you want the court to send the order to another person or address? 
-subquestion: |
+  Do you want the court to send the order to another person instead of you? 
+subquestion: |  
   You entered the following contact information for yourself.
 
   Address: ${ users[0].address.on_one_line(bare=True)}[NEWLINE]
   Phone: ${ phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else "None entered" }[NEWLINE]
   Email: ${ users[0].email if users[0].has_email_address else "None entered" }
   
-  The court will send the order to you at this address unless you select **Yes**. You can enter another person and contact information on the next screens.
+  Click **No** if you want the court to send the signed order to you at the above address. Click **Yes** if you want the court to send the signed order somewhere else.
 fields:
   - "Send order to another person or address?": add_order_recipient
-    datatype: yesnoradio
+    input type: radio
+    choices:
+      - Yes: True
+      - "No, I want the court to send the order to me.": False
 ---
 id: order recipient name
 sets:
