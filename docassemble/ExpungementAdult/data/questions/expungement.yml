@@ -917,17 +917,16 @@ code: |
   
     if record.after_arrest == "qualified_probation":
       if record.qp_complete:
-        record.ex_eligible = True
         if record.qp_complete_plus_5:
+          record.ex_eligible = True
           record.ex_when = "5 qp now"
           return
-        else:
-          record.ex_when = "5 qp"
         record.se_eligible = True
         record.se_when = "2"
-        if record.qp_type == "second":
-          record.se_when = "now"  
-        return
+        # removed second chance no waiting period 09/26 form updates
+        #if record.qp_type == "second":
+        #  record.se_when = "now"  
+        #return
       else:
         record.se_eligible = True
         if record.is_felony:
@@ -939,7 +938,9 @@ code: |
     if record.after_arrest == "weapons":
       record.se_eligible = True
       if record.weapons_complete:
-        record.se_when = "now"  
+        record.se_when = "now"
+        record.ex_eligible = True
+        record.ex_when = "5"
       else:
         if record.is_felony:
           record.se_when = "3"
@@ -1063,7 +1064,7 @@ code: |
       return "**five years** after you successfully complete your supervision."
     elif period == "5 sup now":
       return "**right now**, based on your answer that it has been at least five years since your successfully completed your supervision."
-    elif period == "5 qp":
+    elif period == "5 qp": #10-2-26 this option is no longer used
       return "**five years** after your Qualified Probation ended successfully."
     elif period == "5 qp now":
       return "**right now**, based on your answer that it has been at least five years since your Qualified Probation ended successfully."
@@ -1202,6 +1203,14 @@ subquestion: |
   
   **Note:** If you successfully completed problem-solving court, pre-plea diversion, or a post-plea diversion program, list the outcome as **DA** - Dismissal or Acquittal. The case must be **dismissed** before it can be expunged.
   % endif  
+  % if x[i].include == "seal" and (getattr(x[i], 'after_arrest', False) == "weapons") and (getattr(x[i], 'weapons_complete', False) == True):
+  
+  **Note:** If you successfully completed the First Time Weapon Offense Program, list the outcome as **DA** - Dismissal or or diversion program (or other special program) completion. The case must be **dismissed** before it can be expunged.
+  % endif
+  % if x[i].include == "expunge" and (getattr(x[i], 'after_arrest', False) == "weapons") and (getattr(x[i], 'weapons_complete', False) == True):
+  
+  **Note:** If you successfully completed the First Time Weapon Offense Program, list the outcome as **DA** - Dismissal or Acquittal. The case must be **dismissed** before it can be expunged.
+  % endif
 fields:
   - Arresting agency: x[i].agency
     maxlength: 50
@@ -1217,7 +1226,7 @@ fields:
     datatype: radio
     choices:
       - "**RWC** - Released Without Charge": RWC
-      - "**DA** - Dismissal or Acquittal, Finding of No Probable Cause (FNPC), Found Not Guilty (FNG), Nolle Prosequi, Non-Suit, Stricken Off with Leave to Reinstate (SOL)": DA
+      - "**DA** - Dismissal or Acquittal, Finding of No Probable Cause (FNPC), Found Not Guilty (FNG), Nolle Prosequi, Non-Suit, Stricken Off with Leave to Reinstate (SOL), Diversion program (or other special program) completion": DA
       - "**S** - Court Supervision, Completed successfully": S
       - "**QP** - First Offender Drug Probation or Qualified Probation, Completed successfully": QP
       - "**FI** - Found Factually Innocent": FI
@@ -1239,6 +1248,7 @@ fields:
       - "**FC** - Felony Conviction - Guilty / Sentenced to: IDOC (Illinois Department of Corrections) or County Departments of Corrections (jail), Conditional Discharge, Probation (not Qualified Probation), or Fine (without court supervision)": FC
       - "**CE** - Guilty / Conviction with a Certificate of Eligibility for Sealing from PRB": CE
       - "**QP** - Qualified Probation, completed successfully": QP
+      - "**DA** - Dismissal or diversion program (or other special program) completion": DA
     show if: 
       code: |
         records[i].include == "seal"      
@@ -1294,6 +1304,11 @@ code: |
       'abbreviation': 'DA',
       'disposition': 'Stricken Off with Leave to Reinstate (SOL)',
       'more_information': 'The State has the option to bring the case back up again. If they do not within 120 – 160 days, the case is considered terminated.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'DA',
+      'disposition': 'Diversion program',
+      'more_information': 'You participated in a diversion program (or other special program) that ended in the case being dismissed.'
     })
     expungement_outcomes.append({
       'abbreviation': 'RWC',
@@ -1375,6 +1390,11 @@ code: |
       'disposition': 'Qualified Probation Successfully Completed',
       'more_information': 'This type of probation can also be called 410, 710, 1410, or TASC probation when the court determines the arrest was a result of alcohol or drug addiction and must be reflected in the record. You can tell if you received this special type of probation by the court disposition.'
     })
+    sealing_outcomes.append({
+      'abbreviation': 'DA',
+      'disposition': 'Dismissal or diversion program completion',
+      'more_information': 'You participated in a diversion program (or other special program) that ended in the case being dismissed.'
+    })  
     sealing_outcomes.gathered = True
     return
 ---
@@ -1684,19 +1704,19 @@ code: |
 
       if record.after_arrest == "supervision":
         ex_supervision_any = True
-      if record.supervision_exclusion == "reckless":
-        if record.reckless_was_under_25:
-          if not record.reckless_other:
-            if record.reckless_now_25:
-              ex_reckless_driving = True
-              continue
-      if record.supervision_needs_5:
-        if record.supervision_complete_plus_5:
-          ex_supervision_complete_5_any = True
+        if record.supervision_exclusion == "reckless":
+          if record.reckless_was_under_25:
+            if not record.reckless_other:
+              if record.reckless_now_25:
+                ex_reckless_driving = True
+                continue
+        if record.supervision_needs_5:
+          if record.supervision_complete_plus_5:
+            ex_supervision_complete_5_any = True
+            continue
+        elif record.supervision_complete_plus_2:
+          ex_supervision_complete_2_any = True
           continue
-      elif record.supervision_complete_plus_2:
-        ex_supervision_complete_2_any = True
-        continue
 
   ################## set sealing checkbox variables ###################
 
@@ -1762,15 +1782,16 @@ code: |
   
       if record.after_arrest == "diversion":  
         continue
-  
-      if record.after_arrest == "qualified_probation":
-        if record.qp_complete:
-          if record.qp_type == "second":
-            se_qp_complete_no_wait = True
-            continue
 
-      if record.after_arrest == "weapons":  
-        se_qp_complete_no_wait = True
+      # removed due to 09/26 form changes
+      # if record.after_arrest == "qualified_probation":
+      #   if record.qp_complete:
+      #     if record.qp_type == "second":
+      #       se_qp_complete_no_wait = True
+      #       continue
+
+      if record.after_arrest == "weapons":
+        se_ftwop_complete_no_wait = True
         continue
   
       if record.after_arrest == "supervision":
@@ -2166,7 +2187,7 @@ attachment:
     - "se_outcome_9": ${ include_se[9].se_outcome if include_se.number() > 9 else "" }
 
     - "se_additional_cb": ${ include_se.number() > 10 }
-    - "se_qp_complete_no_wait": ${ se_qp_complete_no_wait if include_se.number() > 0 else '' }
+    - "se_ftwop_complete_no_wait": ${ se_ftwop_complete_no_wait if include_se.number() > 0 else '' }
     - "se_supervision_2": ${ se_supervision_2 if include_se.number() > 0 else '' }
     - "se_misdemeanor_2": ${ se_misdemeanor_2 if include_se.number() > 0 else '' }
     - "se_drugs_complete_2": ${ se_drugs_complete_2 if include_se.number() > 0 else '' }
@@ -2875,7 +2896,7 @@ review:
     button: |
       **Have at least 5 years passed since you successfully completed your Qualified Probation?**
       ${word(yesno(x.qp_complete_plus_5))} 
-    show if: x.after_arrest == "qualified_probation" and x.qp_complete and x.qp_type != "second"
+    show if: x.after_arrest == "qualified_probation" and x.qp_complete
   - Edit: x.supervision_exclusion
     button: |
       **Was your supervision for an excludable offense?**
